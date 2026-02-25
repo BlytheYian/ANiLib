@@ -1,0 +1,103 @@
+{% extends "ani/navbar.html" %}
+
+{% block title %}首頁 | ANiLib{% endblock %}
+
+{% block content %}
+{% if recent_anis %}
+<div id="aniHeroCarousel" class="carousel slide mb-5 shadow-lg rounded-4 overflow-hidden" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+        {% for ani in recent_anis %}
+        <button type="button" data-bs-target="#aniHeroCarousel" data-bs-slide-to="{{ forloop.counter0 }}" 
+                class="{% if forloop.first %}active{% endif %}" aria-current="true"></button>
+        {% endfor %}
+    </div>
+
+    <div class="carousel-inner">
+        {% for ani in recent_anis %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}" data-bs-interval="5000">
+            <div class="d-flex align-items-center justify-content-center" 
+                 style="height: 450px; background: linear-gradient(135deg, #4f8fa8 0%, #e895f3 100%);">
+                <div class="text-center text-white px-4">
+                    <span class="badge bg-warning text-dark mb-2"></span>
+                    <h1 class="display-3 fw-bold">{{ ani.title }}</h1>
+                    <p class="fs-4">{{ ani.title_ch|default:"熱門作品" }} · {{ ani.year }}</p>
+                    <div class="mt-4">
+                        <a href="{% url 'ani_detail' ani.pk %}" class="btn btn-light btn-lg px-5 rounded-pill fw-bold">立即查看</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button class="carousel-control-prev" type="button" data-bs-target="#aniHeroCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#aniHeroCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    </button>
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h2 class="fw-bold mb-0">全部收藏</h2>
+        <p class="text-muted mb-0">探索資料庫中的所有作品</p>
+    </div>
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            排序方式
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-menu" href="?sort=year">按年份</a></li>
+            <li><a class="dropdown-menu" href="?sort=rating">按評分</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+    {% for ani in anis %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm hover-shadow transition">
+            <div class="card-img-top bg-secondary d-flex align-items-center justify-content-center text-white-50" style="height: 250px;">
+                <i class="bi bi-image" style="font-size: 3rem;">No Image</i>
+            </div>
+            
+            <div class="card-body">
+                <h6 class="card-title text-truncate mb-1" title="{{ ani.title }}">{{ ani.title }}</h6>
+                <p class="card-text small text-muted mb-2">{{ ani.year }} · {{ ani.rating }}</p>
+                
+                <div class="mb-3">
+                    {% if ani.imdb_stars %}
+                    <span class="text-warning small">★ {{ ani.imdb_stars }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {% for tag in ani.tags.all|slice:":2" %}
+                    <span class="badge rounded-pill bg-light text-dark border">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                
+                <a href="{% url 'ani_detail' ani.pk %}" class="btn btn-sm btn-outline-primary w-100 rounded-pill">詳細內容</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <p class="text-muted">目前沒有找到任何動畫資料......</p>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    .hover-shadow {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .transition { transition: 0.3s; }
+</style>
+{% endblock %}

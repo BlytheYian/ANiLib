@@ -1,0 +1,51 @@
+{% extends "ani/navbar.html" %}
+
+{% block title %}{{ ani.title }} | ANiLib{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="text-decoration-none">首頁</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ ani.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            {% if ani.image %}
+                <img src="{{ ani.image.url }}" class="img-fluid rounded shadow-lg" alt="{{ ani.title }} 海報">
+            {% else %}
+                <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow-lg" style="height: 500px;">
+                    <span class="fs-4">暫無圖片<br>(No Image)</span>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-8">
+            <h1 class="display-4 fw-bold mb-2">{{ ani.title }}</h1>
+            
+            <h4 class="text-muted mb-4">
+                年份：{{ ani.year }} 
+                </h4>
+
+            <hr>
+
+            <h5 class="fw-bold mt-4">劇情簡介</h5>
+            <p class="fs-5" style="line-height: 1.8;">
+                {% if ani.description %}
+                    {{ ani.description|linebreaks }}
+                {% else %}
+                    <span class="text-muted">這部動畫目前還沒有詳細的簡介資料喔！</span>
+                {% endif %}
+            </p>
+
+            <div class="mt-5">
+                <a href="{% url 'ani_index' %}" class="btn btn-outline-primary btn-lg">
+                    &larr; 返回首頁
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
