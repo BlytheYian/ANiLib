@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from .models import Ani
 
 def ani_index(request):
-    recent_anis = Ani.objects.all().order_by('-year')[:5]
+    recent_anis = Ani.objects.all().order_by('-year')[:7]
     all_anis = Ani.objects.all().order_by('-year')
     return render(request, 'ani/ani_index.html', {
         'recent_anis': recent_anis,

@@ -7,7 +7,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         /* 簡單的自定義黑暗模式 */
-        [data-bs-theme="dark"] { background-color: #121212; }
+        [data-bs-theme="dark"] { 
+            /* 這是直接改掉 Bootstrap 底層用來控制背景顏色的「變數」 */
+            --bs-body-bg: #121212; 
+        }
         .navbar-brand { font-weight: 800; letter-spacing: 1px; }
     </style>
 </head>
@@ -25,7 +28,7 @@
                 </form>
 
                 <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle ms-2" type="button" title="切換深色/淺色模式">
-                    <span id="theme-icon">🌙</span>
+                    <span id="theme-icon">☼</span>
                 </button>
             </div>
         </div>
@@ -44,6 +47,45 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             document.body.setAttribute('data-bs-theme', newTheme);
         });
+        document.addEventListener('DOMContentLoaded', () => {
+        // 1. 抓取我們需要操作的元素
+        // Bootstrap 5.3 官方建議把 data-bs-theme 放在 <html> 標籤上效果最好
+        const htmlElement = document.documentElement; 
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+
+        // 2. 檢查 LocalStorage 是否有之前存過的設定（預設給 'light'）
+        const savedTheme = localStorage.getItem('site_theme') || 'light';
+        
+        // 3. 網頁一載入，馬上套用存好的設定
+        applyTheme(savedTheme);
+
+        // 4. 當使用者點擊按鈕時發生的事
+        themeToggleBtn.addEventListener('click', () => {
+            // 看看現在是什麼模式
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            // 如果是淺色就換深色，反之亦然
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            // 套用新主題並存檔
+            applyTheme(newTheme);
+        });
+
+        // 定義套用主題的獨立函數（這樣程式碼比較乾淨）
+        function applyTheme(theme) {
+            // 改變 HTML 標籤的屬性，呼叫 Bootstrap 的黑魔法
+            htmlElement.setAttribute('data-bs-theme', theme);
+            
+            // 把選擇存進瀏覽器的 LocalStorage
+            localStorage.setItem('site_theme', theme);
+            
+            // 改變按鈕上的圖示 (淺色顯示月亮，深色顯示太陽)
+            themeIcon.textContent = theme === 'light' ? '☼' : '☾ ';
+            
+            // 如果你之前在 <body> 也有寫 data-bs-theme="light"，這裡順便同步改掉
+            document.body.setAttribute('data-bs-theme', theme);
+        }
+    });
     </script>
 </body>
 </html>
