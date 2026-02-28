@@ -38,7 +38,7 @@
                             <div class="col-md-8 text-white text-center text-md-start">
                                 <h1 class="display-3 fw-bold mb-2">{{ ani.title }}</h1>
                                 <p class="fs-4 text-light-50 mb-3">{{ ani.year }} · {{ ani.rating }}</p>
-                                <p class="lead text-truncate-3 opacity-75" style="max-width: 600px;">
+                                <p class="lead text-truncate-5 opacity-75" style="max-width: 600px; white-space: pre-line;">
                                     {{ ani.description|default:"點擊查看更多精彩內容與詳細介紹..." }}
                                 </p>
                             </div>
@@ -124,10 +124,9 @@
 </div>
 
 <style>
-    /* 多行文字截斷 (3行) */
-    .text-truncate-3 {
+    .text-truncate-5 {
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 5;
         -webkit-box-orient: vertical;  
         overflow: hidden;
     }
@@ -146,14 +145,6 @@
         object-fit: cover;
     }
 
-    /* 讓詳細內容按鈕在黑暗模式下更好看 */
-    [data-bs-theme="dark"] .card {
-        background-color: #1e1e1e;
-    }
-    [data-bs-theme="dark"] .badge.bg-light {
-        background-color: #333 !important;
-        color: #eee !important;
-    }
     .carousel-control-prev,
     .carousel-control-next {
         opacity: 0; /* 預設完全透明 */
