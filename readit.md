@@ -35,3 +35,14 @@ Data Attributes (數據屬性)這是你剛剛「按鈕沒反應」的關鍵！Bo
 data-bs-ride="carousel"：告訴 JS「這個東西要自動開始跑」。
 data-bs-target="#myID"：告訴按鈕「你要控制哪一個 ID 的物件」。
 data-bs-slide="next"：告訴按鈕「點我時要切換到下一張」。為什麼你的箭頭會沒反應？通常是因為按鈕上的 data-bs-target="#A" 和最外層的 id="B" 對不起來。就像你的遙控器對準了隔壁家的電視，當然轉不了台。
+
+ani_index.html
+<!-- forloop.counter0: 從 0 開始數, .counter從1 , 類似於i++-->
+<!-- 這是頁面一開始的渲染, 之後js每5秒移動一次.active到下個頁面 -->
+<!-- 預設的 .carousel-item：CSS 是 display: none;（完全隱藏）。加上 .active 後：CSS 變成 display: block;（顯示出來）。 -->
+<!-- aria: 無障礙設計, 用來告知"當前項目" -->
+
+rounded-4:
+border-radius: var(--bs-border-radius-xl); /* 換算成像素大約是 1rem(字體大小) 或 16px */
+rounded-circle	50%	變成正圓形（適合使用者頭像）
+rounded-pill	50rem	變成膠囊狀（適合導覽列按鈕）
