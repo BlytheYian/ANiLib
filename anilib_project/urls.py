@@ -22,8 +22,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.ani_index, name='ani_index'), # 直接把首頁對接到根目錄
-    path('ani/', include('ani.urls')), # 移到 ani/urls.py
+    path('', views.ani_index, name='ani_index'),
+    path('ani/', include('ani.urls')),
 ]
 
 if settings.DEBUG:

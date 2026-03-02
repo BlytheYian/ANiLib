@@ -42,7 +42,47 @@ ani_index.html
 <!-- 預設的 .carousel-item：CSS 是 display: none;（完全隱藏）。加上 .active 後：CSS 變成 display: block;（顯示出來）。 -->
 <!-- aria: 無障礙設計, 用來告知"當前項目" -->
 
+container 預設只會管「左右的寬度與對齊」
+
 rounded-4:
 border-radius: var(--bs-border-radius-xl); /* 換算成像素大約是 1rem(字體大小) 或 16px */
 rounded-circle	50%	變成正圓形（適合使用者頭像）
 rounded-pill	50rem	變成膠囊狀（適合導覽列按鈕）
+
+Bootstrap 的間距 class 命名邏輯超級直覺，完全是縮寫組成的：
+
+第一碼 (屬性)：m 代表 Margin (外邊距，推開別人)，p 代表 Padding (內邊距，把自己的肚子撐大)。
+
+第二碼 (方向)：t (Top 上)、b (Bottom 下)、s (Start 左)、e (End 右)、x (左右水平)、y (上下垂直)。
+
+第三碼 (大小)：數字 0 到 5，數字越大距離越寬。
+
+所以 mt-4 的意思就是：Margin Top 大小為 4。
+
+ratio-1x1：正方形 (適合大頭貼)
+
+ratio-4x3：傳統電視比例 (微扁)
+
+ratio-16x9：YouTube 影片標準比例 (適合橫式劇照)
+
+ratio-21x9：電影寬螢幕比例
+
+ratio-3x4 或手動寫 CSS aspect-ratio: 3/4;：最適合動漫、電影海報的直式長方形！
+
+1. 斷點切換原理：navbar-expand-lg
+Bootstrap 的 Navbar 之所以能「大螢幕橫排、小螢幕收折」，全靠最外層的 navbar-expand-lg 這個類別。
+
+lg (Large) 的意義：它代表螢幕寬度大於 992px（通常是平板橫向或電腦螢幕）。
+
+大於 992px 時：Bootstrap 會強制把裡面帶有 collapse 的區塊展開，變成橫向排列。
+
+小於 992px 時：Bootstrap 會把 collapse 區塊隱藏起來。這時，必須點擊那個帶有 data-bs-toggle="collapse" 的漢堡按鈕，它才會往下展開。
+
+2. 排版推擠魔法：me-auto 與 ms-auto
+這是現代網頁排版（CSS Flexbox）最神妙的技巧。在 Flex 容器裡，margin: auto 會像「彈簧」一樣把元素推開。
+
+me-auto (Margin End Auto)：我加在「動畫庫」的外層 <ul> 上。這代表它的右邊會有一個無限大的彈簧，把它右邊所有的東西（搜尋框、按鈕）全部用力推到畫面最右側。
+
+ms-auto (Margin Start Auto)：我加在「搜尋框與按鈕」的外層 <div> 上。這代表它的左邊有彈簧，確保這組功能區塊永遠貼著右邊界。
+
+因為這兩個彈簧的作用，畫面就完美切成了三等份：「Logo (靠左) --- 動畫庫 (跟著 Logo) ===== 彈簧空間 ===== 搜尋與按鈕 (靠右)」。

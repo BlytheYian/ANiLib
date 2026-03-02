@@ -4,9 +4,11 @@ from .models import Ani
 def ani_index(request):
     recent_anis = Ani.objects.all().order_by('-year')[:10]
     all_anis = Ani.objects.all().order_by('-year')
+    recommended_anis = Ani.objects.all().order_by('-year')[10:20]
     return render(request, 'ani/ani_index.html', {
         'recent_anis': recent_anis,
         'anis': all_anis,
+        'recommended_anis': recommended_anis,
     })
 
 def ani_detail(request, pk):

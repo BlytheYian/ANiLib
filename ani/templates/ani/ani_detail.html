@@ -7,6 +7,7 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="text-decoration-none">首頁</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ani_lib' %}" class="text-decoration-none">動畫庫</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ ani.title }}</li>
         </ol>
     </nav>
@@ -39,12 +40,6 @@
                     <span class="text-muted">這部動畫目前還沒有詳細的簡介資料喔！</span>
                 {% endif %}
             </p>
-
-            <div class="mt-5">
-                <a href="{% url 'ani_index' %}" class="btn btn-outline-primary btn-lg">
-                    &larr; 返回首頁
-                </a>
-            </div>
         </div>
     </div>
 </div>

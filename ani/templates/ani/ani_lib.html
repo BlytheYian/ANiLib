@@ -1,11 +1,11 @@
 {% extends "ani/navbar.html" %}
 
-{% block title %}首頁 | ANiLib{% endblock %}
+{% block title %}動畫庫 | ANiLib{% endblock %}
 
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-end mb-4 px-2 container">
-    <div class="">
+    <div class="mt-4">
         <h2 class="fw-bold mb-0">全部收藏</h2>
         <p class="text-muted mb-0">探索資料庫中的所有作品</p>
     </div>
@@ -21,8 +21,8 @@
 </div>
 
 <div class="container mb-5">
-    <div class="d-flex justify-content-between align-items-end mb-4 px-2">
-        </div>
+    <div class="d-flex mb-2 px-2">
+    </div>
     <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
         {% for ani in anis %}
         <div class="col">
@@ -64,5 +64,20 @@
         {% endfor %}
     </div>
 </div>
+
+<style>
+    .hover-shadow {
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .hover-shadow:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+    }
+    
+    /* 圖片填充優化 */
+    .object-fit-cover {
+        object-fit: cover;
+    }
+</style>
 
 {% endblock %}
