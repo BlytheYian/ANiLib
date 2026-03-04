@@ -51,7 +51,6 @@ class Ani(models.Model):
     runtime = models.IntegerField(blank=True, null=True, verbose_name="單集時長")
     imdb_stars = models.FloatField(blank=True, null=True, verbose_name="IMDb評分") # 用 Float 是因為評分通常有小數點 (如 8.5)
     
-    # 狀態與分級 (這裡先用字串存，未來可以進階改成下拉選單)
     class StatusChoices(models.TextChoices):
         ONGOING = 'ONGOING', '連載中'
         FINISHED = 'FINISHED', '已完結'

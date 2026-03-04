@@ -8,3 +8,5 @@ notion_data.csv
 fix_img_format.py
 fix_poster.py
 fix_des.py
+fix_status.py
+import_notion.py

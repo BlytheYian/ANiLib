@@ -30,7 +30,7 @@
                 <div class="card h-100 border-0 shadow-sm hover-shadow transition rounded-3 overflow-hidden">
                     <div class="position-relative" style="height: 280px;">
                         {% if ani.poster %}
-                            <img src="{{ ani.poster.url }}" class="w-100 h-100 object-fit-cover" alt="{{ ani.title }}">
+                            <img src="{{ ani.poster.url }}" class="w-100 h-100 object-fit-cover" loading="lazy" alt="{{ ani.title }}">
                         {% else %}
                             <div class="bg-secondary w-100 h-100 d-flex align-items-center justify-content-center text-white-50">
                                 <i class="bi bi-image" style="font-size: 2rem;"></i>
@@ -45,7 +45,7 @@
                     
                     <div class="card-body p-3">
                         <h6 class="card-title text-truncate mb-1 fw-bold" title="{{ ani.title }}">{{ ani.title }}</h6>
-                        <p class="card-text small text-muted mb-2">{{ ani.year }} · {{ ani.rating }}</p>
+                        <p class="card-text small text-muted mb-2">{{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span></p>
                         
                         <div class="d-flex flex-wrap gap-1 mt-2">
                             {% for tag in ani.tags.all|slice:":2" %}
@@ -73,8 +73,6 @@
         transform: translateY(-8px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
     }
-    
-    /* 圖片填充優化 */
     .object-fit-cover {
         object-fit: cover;
     }

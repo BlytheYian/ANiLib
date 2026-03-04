@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         [data-bs-theme="dark"] { 
-            /* 這是直接改掉 Bootstrap 底層用來控制背景顏色的「變數」 */
             --bs-body-bg: #121212; 
         }
         .navbar-brand { font-weight: 800; letter-spacing: 1px; }
@@ -31,7 +30,7 @@
             <div class="d-flex align-items-center flex-grow-1 flex-lg-grow-0 ms-auto">
                 
                 <form class="flex-grow-1 me-2 mb-0" action="/search/" method="get">
-                    <input class="form-control rounded-pill" type="search" name="q" placeholder="搜尋..." aria-label="Search">
+                    <input class="form-control rounded-pill" type="search" name="q" placeholder="搜尋..." autocomplete="off" aria-label="Search">
                 </form>
 
                 <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 38px; height: 38px;" type="button">
@@ -48,8 +47,7 @@
     </nav>
     <style>
         .nav-link {
-            /* 告訴瀏覽器這兩個屬性要平滑過渡 */
-            transition: transform 0.2s ease, color 0.2s ease !important; 
+            transition: transform 0.2s ease, color 0.2s ease !important; // 平滑過渡
             display: inline-block;
         }
         .nav-link:hover {
@@ -58,6 +56,43 @@
         }
         #theme-toggle:hover {
             background-color: #7caac5 !important;
+        }
+
+        /*
+        .status-badge[data-status="ONGOING"] { @extend .bg-success; background-color: #4cce91;}
+        .status-badge[data-status="FINISHED"] { @extend .bg-primary; background-color: rgb(113, 164, 241); }
+        .status-badge[data-status="CANCELLED"] { @extend .bg-danger; background-color: #ff6d7c; }
+        .status-badge[data-status="UPCOMING"] { background-color: #bd84ef; }
+        .status-badge[data-status="CROWDFUNDING"] { background-color: #ffcc00; }*/
+        .status-badge[data-status="ONGOING"] { 
+            @extend .bg-success; 
+            border-color: #4cce91;
+            color: #4cce91;
+        }
+        .status-badge[data-status="FINISHED"] { 
+            @extend .bg-primary; 
+            border-color:  rgb(118, 177, 236);
+            color:  rgb(118, 177, 236);
+         }
+        .status-badge[data-status="CANCELLED"] { 
+            @extend .bg-danger; 
+            border-color: #ff6d7c;
+            color:  #ff6d7c;
+        }
+        .status-badge[data-status="UPCOMING"] { 
+            border-color:  #e7b900;
+            color:  #e7b900;
+        }
+        .status-badge[data-status="CROWDFUNDING"] { 
+            border-color:  #bd84ef;
+            color:  #bd84ef;
+        }
+        .status-badge { 
+            border: 2px solid;
+            border-color: #a0adb9;
+            font-weight: 600;
+            color: #a0adb9;
+            padding: 0.35em 0.65em;
         }
     </style>
 
@@ -106,7 +141,6 @@
             localStorage.setItem('site_theme', theme);
             
             // 🌟 核心魔法：直接改變元素的 class 來切換圖示！
-            // 淺色模式顯示月亮 (bi-moon-fill)，深色模式顯示太陽 (bi-sun-fill)
             themeIcon.className = theme === 'light' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
             
             // 同步改變 body

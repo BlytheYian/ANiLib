@@ -15,7 +15,7 @@
     <div class="row">
         <div class="col-md-4 mb-4">
             {% if ani.poster %}
-                <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow-lg object-fit-cover" style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" alt="{{ ani.title }} 海報">
+                <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow-lg object-fit-cover" style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" loading="lazy" alt="{{ ani.title }} 海報">
             {% else %}
                 <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow-lg" style="height: 500px;">
                     <span class="fs-4">暫無圖片<br>(No Image)</span>
