@@ -3,7 +3,6 @@
 {% block title %}動畫庫 | ANiLib{% endblock %}
 
 {% block content %}
-
 <div class="d-flex justify-content-between align-items-end mb-4 px-2 container">
     <div class="mt-4">
         <h2 class="fw-bold mb-0">全部收藏</h2>
@@ -21,49 +20,27 @@
 </div>
 
 <div class="container mb-5">
-    <div class="d-flex mb-2 px-2">
+    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4" id="ani-grid">
+        
+        {% if not page_obj %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-inbox text-muted display-1"></i>
+                <p class="text-muted mt-3">目前沒有找到任何動畫資料......</p>
+            </div>
+        {% else %}
+            {% include "ani/partials/ani_items.html" %}
+        {% endif %}
+        
     </div>
-    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
-        {% for ani in anis %}
-        <div class="col">
-            <a href="{% url 'ani_detail' ani.pk %}" class="text-decoration-none text-reset">
-                <div class="card h-100 border-0 shadow-sm hover-shadow transition rounded-3 overflow-hidden">
-                    <div class="position-relative" style="height: 280px;">
-                        {% if ani.poster %}
-                            <img src="{{ ani.poster.url }}" class="w-100 h-100 object-fit-cover" loading="lazy" alt="{{ ani.title }}">
-                        {% else %}
-                            <div class="bg-secondary w-100 h-100 d-flex align-items-center justify-content-center text-white-50">
-                                <i class="bi bi-image" style="font-size: 2rem;"></i>
-                            </div>
-                        {% endif %}
-                        {% if ani.imdb_stars %}
-                        <div class="position-absolute top-0 end-0 m-2">
-                            <span class="badge bg-dark bg-opacity-75 text-warning fw-bold">★ {{ ani.imdb_stars }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="card-body p-3">
-                        <h6 class="card-title text-truncate mb-1 fw-bold" title="{{ ani.title }}">{{ ani.title }}</h6>
-                        <p class="card-text small text-muted mb-2">{{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span></p>
-                        
-                        <div class="d-flex flex-wrap gap-1 mt-2">
-                            {% for tag in ani.tags.all|slice:":2" %}
-                            <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border-0 small" style="font-size: 0.7rem;">{{ tag.name }}</span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </a>
+    
+    <div class="text-center py-4 htmx-indicator" id="loading-spinner" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
-        {% empty %}
-        <div class="col-12 text-center py-5">
-            <i class="bi bi-inbox text-muted display-1"></i>
-            <p class="text-muted mt-3">目前沒有找到任何動畫資料......</p>
-        </div>
-        {% endfor %}
     </div>
 </div>
+
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
 <style>
     .hover-shadow {
@@ -73,9 +50,14 @@
         transform: translateY(-8px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
     }
+
     .object-fit-cover {
         object-fit: cover;
     }
+    
+    /* Htmx 指示器的樣式 */
+    .htmx-request#loading-spinner {
+        display: block !important;
+    }
 </style>
-
 {% endblock %}

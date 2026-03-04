@@ -3,43 +3,58 @@
 {% block title %}{{ ani.title }} | ANiLib{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="text-decoration-none">首頁</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'ani_lib' %}" class="text-decoration-none">動畫庫</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ ani.title }}</li>
-        </ol>
-    </nav>
+<div class="position-relative overflow-hidden d-flex flex-column" style="min-height: calc(100vh - 56px); display: flex; flex-direction: column;">
+    
+    <div class="position-absolute top-0 start-0 w-100 h-100" 
+         style="
+            background: #333 url('{% if ani.banner %}{{ ani.banner.url }}{% elif ani.poster %}{{ ani.poster.url }}{% endif %}') center/cover no-repeat; 
+            background-size: cover; 
+            background-position: center; 
+            filter: blur(7px) brightness(0.8);
+            transform: scale(1.1);
+            z-index: 0;
+         ">
+    </div>
 
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            {% if ani.poster %}
-                <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow-lg object-fit-cover" style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" loading="lazy" alt="{{ ani.title }} 海報">
-            {% else %}
-                <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow-lg" style="height: 500px;">
-                    <span class="fs-4">暫無圖片<br>(No Image)</span>
-                </div>
-            {% endif %}
-        </div>
+    <div class="container position-relative bg-body shadow-lg p-4 p-md-5 mb-0 flex-grow-1" style="z-index: 1;">
+        
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="text-decoration-none">首頁</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ani_lib' %}" class="text-decoration-none">動畫庫</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ ani.title }}</li>
+            </ol>
+        </nav>
 
-        <div class="col-md-8">
-            <h1 class="display-4 fw-bold mb-2">{{ ani.title }}</h1>
-            
-            <h4 class="text-muted mb-4">
-                年份：{{ ani.year }} 
-                </h4>
-
-            <hr>
-
-            <h5 class="fw-bold mt-4">劇情簡介</h5>
-            <p class="fs-5" style="line-height: 1.8;">
-                {% if ani.description %}
-                    {{ ani.description|linebreaks }}
+        <div class="row">
+            <div class="col-md-4 mb-4 mb-md-0">
+                {% if ani.poster %}
+                    <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow object-fit-cover" style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" loading="lazy" alt="{{ ani.title }} 海報">
                 {% else %}
-                    <span class="text-muted">這部動畫目前還沒有詳細的簡介資料喔！</span>
+                    <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow" style="height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;">
+                        <span class="fs-4 text-center">暫無圖片<br>(No Image)</span>
+                    </div>
                 {% endif %}
-            </p>
+            </div>
+
+            <div class="col-md-8">
+                <h1 class="display-5 fw-bold mb-2">{{ ani.title }}</h1>
+                
+                <h6 class="text-muted mb-4">
+                    {{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span>
+                </h6>
+
+                <hr>
+
+                <h5 class="fw-bold mt-4">劇情簡介</h5>
+                <div class="fs-5 text-secondary" style="line-height: 1.8;">
+                    {% if ani.description %}
+                        {{ ani.description|linebreaks }}
+                    {% else %}
+                        <span class="text-muted">這部動畫目前還沒有詳細的簡介資料喔！</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

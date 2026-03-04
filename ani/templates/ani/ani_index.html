@@ -21,7 +21,7 @@
                  style="aspect-ratio: 17 / 7; min-height: 300px; width: 100%;">
                     
                     <div class="position-absolute w-100 h-100" style="
-                        {% if ani.banner %}background: url('{{ ani.banner.url }}') center/cover no-repeat;{% else %}background: #222;{% endif %}
+                        background: #333 url('{% if ani.banner %}{{ ani.banner.url }}{% elif ani.poster %}{{ ani.poster.url }}{% endif %}') center/cover no-repeat; 
                         filter: blur(15px) brightness(0.6);
                         transform: scale(1.1);
                         z-index: 1;">

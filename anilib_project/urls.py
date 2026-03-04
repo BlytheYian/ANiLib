@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.ani_index, name='ani_index'),
     path('ani/', include('ani.urls')),
+    path('search/', views.ani_search, name='ani_search'),
 ]
 
 if settings.DEBUG:

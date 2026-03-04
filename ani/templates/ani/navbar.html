@@ -10,6 +10,9 @@
         [data-bs-theme="dark"] { 
             --bs-body-bg: #121212; 
         }
+        [data-bs-theme="dark"] .hover-shadow:hover {
+            box-shadow: 0 15px 30px rgba(255, 255, 255, 0.15) !important;
+        }
         .navbar-brand { font-weight: 800; letter-spacing: 1px; }
     </style>
 </head>
@@ -73,7 +76,7 @@
             @extend .bg-primary; 
             border-color:  rgb(118, 177, 236);
             color:  rgb(118, 177, 236);
-         }
+        }
         .status-badge[data-status="CANCELLED"] { 
             @extend .bg-danger; 
             border-color: #ff6d7c;
@@ -134,16 +137,12 @@
         });
 
         function applyTheme(theme) {
-            // 改變 HTML 標籤的屬性，呼叫 Bootstrap 的黑魔法
             htmlElement.setAttribute('data-bs-theme', theme);
             
-            // 把選擇存進瀏覽器的 LocalStorage
             localStorage.setItem('site_theme', theme);
             
-            // 🌟 核心魔法：直接改變元素的 class 來切換圖示！
             themeIcon.className = theme === 'light' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
             
-            // 同步改變 body
             document.body.setAttribute('data-bs-theme', theme);
         }
     });

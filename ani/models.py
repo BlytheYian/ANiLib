@@ -10,7 +10,6 @@ class Tag(models.Model):
     def __str__(self):
         return self.tag_name
 
-# 2. 建立創作者/公司表
 class Creator(models.Model):
     name = models.CharField(max_length=100, verbose_name="名稱")
     
