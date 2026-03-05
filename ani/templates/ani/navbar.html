@@ -32,7 +32,7 @@
 
             <div class="d-flex align-items-center flex-grow-1 flex-lg-grow-0 ms-auto">
                 
-                <form class="flex-grow-1 me-2 mb-0" action="/search/" method="get">
+                <form class="flex-grow-1 me-2 mb-0" action="{% url 'ani_search' %}" method="get">
                     <input class="form-control rounded-pill" type="search" name="q" placeholder="搜尋..." autocomplete="off" aria-label="Search">
                 </form>
 
@@ -68,17 +68,14 @@
         .status-badge[data-status="UPCOMING"] { background-color: #bd84ef; }
         .status-badge[data-status="CROWDFUNDING"] { background-color: #ffcc00; }*/
         .status-badge[data-status="ONGOING"] { 
-            @extend .bg-success; 
             border-color: #4cce91;
             color: #4cce91;
         }
         .status-badge[data-status="FINISHED"] { 
-            @extend .bg-primary; 
             border-color:  rgb(118, 177, 236);
             color:  rgb(118, 177, 236);
         }
         .status-badge[data-status="CANCELLED"] { 
-            @extend .bg-danger; 
             border-color: #ff6d7c;
             color:  #ff6d7c;
         }

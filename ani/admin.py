@@ -2,8 +2,14 @@ from django.contrib import admin
 from .models import Ani, Tag, Creator, Studio
 from django.utils.html import format_html
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter, ChoiceDropdownFilter
+import os
+from io import BytesIO
+from PIL import Image
+from django.db import models
+from django.core.files.base import ContentFile
 
 # Register your models here.
+
 @admin.register(Ani)
 class AniAdmin(admin.ModelAdmin):
     list_display = ('title', 'title_zh', 'title_ch', 'year', 'imdb_stars', 'status')
@@ -60,7 +66,8 @@ class AniAdmin(admin.ModelAdmin):
         }),
     )
     
-# creators 是定義在 Ani 模型中的 ManyToManyField
+    
+    
 class AniInline(admin.TabularInline):
     model = Ani.creators.through
     extra = 1

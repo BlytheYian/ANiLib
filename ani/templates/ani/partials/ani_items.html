@@ -1,7 +1,7 @@
 {% for ani in page_obj %}
     <div class="col" 
          {% if forloop.last and page_obj.has_next %}
-             hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}"
+             hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
              hx-trigger="revealed"
              hx-swap="afterend"
          {% endif %}>
