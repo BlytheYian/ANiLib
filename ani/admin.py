@@ -34,14 +34,12 @@ class AniAdmin(admin.ModelAdmin):
 
     def banner_preview(self, obj):
         if obj.banner:
-            # 橫幅可以設寬一點
             return format_html('<img src="{}" style="width: 300px; height: auto; border-radius: 5px;" />', obj.banner.url)
         return "尚未上傳橫幅"
 
     poster_preview.short_description = "海報預覽"
     banner_preview.short_description = "橫幅預覽"
 
-    # 必須加入 readonly_fields，否則 Django 不會執行這個函數
     readonly_fields = ['poster_preview', 'banner_preview']
     
     fieldsets = (

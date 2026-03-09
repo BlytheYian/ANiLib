@@ -33,9 +33,9 @@
         
     </div>
     
-    <div class="text-center py-4 htmx-indicator" id="loading-spinner" style="display: none;">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+    <div id="loading-spinner" class="htmx-indicator text-center py-4">
+        <div class="spinner-border" style="color: #7caac5 !important;" role="status">
+            <span class="visually-hidden">載入中...</span>
         </div>
     </div>
 </div>
@@ -55,7 +55,6 @@
         object-fit: cover;
     }
     
-    /* Htmx 指示器的樣式 */
     .htmx-request#loading-spinner {
         display: block !important;
     }
