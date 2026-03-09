@@ -3,6 +3,7 @@ __pycache__/
 db.sqlite3
 media/
 venv/
+.vscode/
 .env
 notion_data.csv
 fix_img_format.py
