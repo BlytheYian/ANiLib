@@ -110,26 +110,18 @@
             document.body.setAttribute('data-bs-theme', newTheme);
         });
         document.addEventListener('DOMContentLoaded', () => {
-        // 1. 抓取我們需要操作的元素
-        // Bootstrap 5.3 官方建議把 data-bs-theme 放在 <html> 標籤上效果最好
         const htmlElement = document.documentElement; 
         const themeToggleBtn = document.getElementById('theme-toggle');
         const themeIcon = document.getElementById('theme-icon');
 
-        // 2. 檢查 LocalStorage 是否有之前存過的設定（預設給 'light'）
         const savedTheme = localStorage.getItem('site_theme') || 'light';
         
-        // 3. 網頁一載入，馬上套用存好的設定
         applyTheme(savedTheme);
 
-        // 4. 當使用者點擊按鈕時發生的事
         themeToggleBtn.addEventListener('click', () => {
-            // 看看現在是什麼模式
             const currentTheme = htmlElement.getAttribute('data-bs-theme');
-            // 如果是淺色就換深色，反之亦然
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             
-            // 套用新主題並存檔
             applyTheme(newTheme);
         });
 
