@@ -18,9 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent 
-# 它會自動抓取你現在這個 anilib_project 資料夾在電腦裡的絕對路徑。
-# 之後無論你要找資料庫、找圖片，Django 都會以這個路徑為起點去推算。你完全不用動它。
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
