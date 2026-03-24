@@ -1,21 +1,20 @@
 {% for ani in page_obj %}
     <div class="col" 
-         {% if page_obj.has_next %}
-             {% if forloop.revcounter == 4 or forloop.last and page_obj.object_list|length < 4 %}
-                hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
+        {% if page_obj.has_next %}
+            {% if forloop.revcounter == 4 or forloop.last and page_obj.object_list|length < 4 %}
+                hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
                 hx-trigger="revealed"
                 hx-target="closest .row"
                 hx-swap="beforeend"
                 hx-indicator="#loading-spinner"
-                 
-             {% endif %}
-         {% endif %}>
-         
+            {% endif %}
+        {% endif %}>
+        
         <a href="{% url 'ani_detail' ani.pk %}" class="text-decoration-none text-reset">
             <div class="card h-100 border-0 shadow-sm hover-shadow transition rounded-3 overflow-hidden bg-body">
                 <div class="position-relative bg-secondary bg-opacity-10" style="height: 280px;">
                     {% if ani.poster %}
-                        <img src="{{ ani.poster.url }}" class="w-100 h-100 object-fit-cover" loading="lazy" alt="{{ ani.title }}">
+                        <img src="{{ ani.poster_thumbnail.url }}" class="w-100 h-100 object-fit-cover" loading="lazy" alt="{{ ani.title }}">
                     {% else %}
                         <div class="bg-secondary bg-opacity-25 w-100 h-100 d-flex align-items-center justify-content-center text-white-50">
                             <i class="bi bi-image" style="font-size: 2rem;"></i>

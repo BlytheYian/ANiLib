@@ -4,10 +4,8 @@
 
 {% block content %}
 {% if recent_anis %}
-<div class="row g-0 mb-5">
-    <div class="col-lg-9">
-        <div id="aniHeroCarousel" class="carousel slide shadow-lg overflow-hidden" data-bs-ride="carousel" >
-            <div class="carousel-indicators" style="z-index: 4;">
+<div id="aniHeroCarousel" class="carousel slide mb-5 shadow-lg overflow-hidden" data-bs-ride="carousel" >
+    <div class="carousel-indicators" style="z-index: 4;">
         {% for ani in recent_anis %}
         <button type="button" data-bs-target="#aniHeroCarousel" data-bs-slide-to="{{ forloop.counter0 }}" 
                 class="{% if forloop.first %}active{% endif %}" aria-current="true"></button>
@@ -20,7 +18,7 @@
             
             <a href="{% url 'ani_detail' ani.pk %}" class="text-decoration-none text-reset d-block">
                 <div class="position-relative overflow-hidden" 
-                         style="height: 41vw; min-height: 400px; max-height: 700px; width: 100%;">
+                 style="aspect-ratio: 17 / 7; min-height: 300px; width: 100%;">
                     
                     <div class="position-absolute w-100 h-100" style="
                         background: #333 url('{% if ani.banner %}{{ ani.banner.url }}{% elif ani.poster %}{{ ani.poster.url }}{% endif %}') center/cover no-repeat; 
@@ -32,7 +30,7 @@
                     <div class="container position-relative h-100 d-flex align-items-center" style="z-index: 2;">
                         <div class="row w-100 align-items-center gx-3 gx-md-5">
                             
-                            <div class="col-5 text-center">
+                            <div class="col-4 text-center">
                                 {% if ani.poster %}
                                 <img src="{{ ani.poster.url }}" 
                                     class="img-fluid rounded-3 shadow-lg border border-light border-opacity-25 object-fit-cover mx-auto d-block" 
@@ -41,8 +39,8 @@
                                 {% endif %}
                             </div>
 
-                            <div class="col-7 text-white text-start">
-                                <h1 class="fw-bold mb-2" style="font-size: clamp(1.2rem, 3.5vw, 3.5rem); line-height: 1.2;">
+                            <div class="col-8 text-white text-start">
+                                <h1 class="fw-bold mb-2" style="font-size: clamp(1.2rem, 4vw, 3.5rem); line-height: 1.2;">
                                     {{ ani.title }}
                                 </h1>
                                 
@@ -55,7 +53,7 @@
                                     white-space: pre-line; 
                                     font-size: clamp(0.8rem, 1.2vw, 1.1rem);
                                     display: -webkit-box;
-                                    -webkit-line-clamp: 5;
+                                    -webkit-line-clamp: 4;
                                     -webkit-box-orient: vertical;
                                     overflow: hidden;">
                                     {{ ani.description|default:"點擊查看更多精彩內容與詳細介紹..." }}
@@ -75,59 +73,12 @@
     <button class="carousel-control-next" type="button" data-bs-target="#aniHeroCarousel" data-bs-slide="next">
         <span class="carousel-control-next-icon" aria-hidden="true"></span>
     </button>
-        </div>
-    </div>
-
-    <div class="col-lg-3">
-        <div class="card w-100 shadow-sm border-0 bg-body-tertiary d-flex flex-column overflow-hidden rounded-0" style="height: 41vw; min-height: 400px; max-height: 700px;">
-            
-            <div class="card-header bg-transparent border-bottom fw-bold py-3 d-flex justify-content-between align-items-center">
-                <span>即將更新</span>
-            </div>
-
-            <div class="card-body p-0 d-flex flex-column overflow-auto hide-scrollbar flex-grow-1 {% if upcoming_episodes %}bg-body{% else %}bg-body-secondary{% endif %}">    
-                {% if upcoming_episodes %}
-                    {% for ep in upcoming_episodes %}
-                    <a href="{% url 'ani_detail' ep.ani.pk %}" class="d-flex align-items-center text-decoration-none text-reset p-3 px-4 border-bottom update-list-item">
-                        <div class="flex-shrink-0">
-                            {% if ep.ani.poster %}
-                            <img src="{{ ep.ani.poster_thumbnail.url }}" class="rounded-3 shadow-sm object-fit-cover" style="width: 50px; height: 70px;" loading="lazy" alt="{{ ep.ani.title }}">
-                            {% else %}
-                            <div class="rounded-3 shadow-sm bg-secondary d-flex justify-content-center align-items-center text-white" style="width: 50px; height: 70px; font-size: 0.8rem;"></div>
-                            {% endif %}
-                        </div>
-                        <div class="flex-grow-1 ms-3 overflow-hidden">
-                            <h6 class="text-truncate fw-bold mb-1" style="font-size: 0.95rem;" title="{{ ep.ani.title }}">{{ ep.ani.title }}</h6>
-                            <div class="d-flex flex-column mt-1">
-                                <span class="text-muted small text-truncate" style="font-size: 0.8rem;" title="{% if ep.season %}第{{ ep.season }}季 {% endif %}第{{ ep.number }}集{% if ep.title %} - {{ ep.title }}{% endif %}">
-                                    {% if ep.season %}第{{ ep.season }}季 {% endif %}第{{ ep.number }}集{% if ep.title %} - {{ ep.title }}{% endif %}
-                                </span>
-                                <div class="d-flex justify-content-between align-items-center mt-1">
-                                    <span class="small text-muted" style="font-size: 0.75rem;">{{ ep.release_time|date:"Y/m/d" }}</span>
-                                    <!--  ep.release_time|date:'c': 'c' 代表的是 ISO 8601 標準格式 -->
-                                    <div class="countdown-wrapper d-flex align-items-center gap-1 fw-bold">
-                                        <span class="countdown-timer" data-time="{{ ep.release_time|date:'c' }}">計算中...</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center text-muted py-5 my-auto">
-                        <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
-                        <p class="mb-0">目前沒有即將更新的動畫</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
 </div>
 
 {% endif %}
 
 {% if recommended_anis %}
-<div class="container-fluid px-3 px-lg-5 mt-5 mb-1">
+<div class="container mt-5 mb-1">
     <div class="d-flex justify-content-between align-items-end mb-3">
         <h3 class="fw-bold mb-0">近期推薦</h3>
         <a href="{% url 'ani_lib' %}" id="ani_all" class="text-decoration-none small text-muted hover-scale">查看全部<i class="bi bi-chevron-right"></i></a>
@@ -145,7 +96,7 @@
             <span style="font-size: 1.2rem; margin-left: 2px;">&#10095;</span>
         </button>
 
-        <div id="aniScrollContainer" class="d-flex overflow-x-auto gap-3 ps-2 pe-4 pt-3 pb-5 hide-scrollbar">
+        <div id="aniScrollContainer" class="d-flex overflow-x-auto gap-3 ps-4 pe-4 pt-3 pb-5 hide-scrollbar">
             
             {% for ani in recommended_anis %}
             <div class="flex-shrink-0 hover-shadow rounded-4" style="width: 160px;">
@@ -170,6 +121,7 @@
                 </a>
             </div>
             {% endfor %}
+            
         </div>
     </div>
 </div>
@@ -201,7 +153,6 @@
         opacity: 0;
         transition: opacity 0.3s ease-in-out;
         z-index: 5;
-        width: 10%;
     }
 
     #aniHeroCarousel:hover .carousel-control-prev,
@@ -255,29 +206,6 @@
     .object-fit-cover {
         object-fit: cover;
     }
-
-    .update-list-item {
-        transition: all 0.2s ease-in-out;
-    }
-    .update-list-item:hover {
-        background-color: rgba(170, 217, 244, 0.1);
-        transform: translateX(3px);
-    }
-    [data-bs-theme="dark"] .update-list-item:hover {
-        background-color: rgba(124, 170, 197, 0.2);
-    }
-
-    .countdown-wrapper {
-        color: #6b9ab8;
-        font-size: 0.75rem;
-        letter-spacing: 0.5px;
-    }
-    [data-bs-theme="dark"] .countdown-wrapper {
-        color: #8dbddb;
-    }
-    .countdown-wrapper.updated {
-        color: #a0adb9 !important;
-    }
 </style>
 
 <script>
@@ -299,42 +227,6 @@ document.addEventListener("DOMContentLoaded", function() {
             scrollContainer.scrollBy({ left: scrollAmount, behavior: "smooth" });
         });
     }
-
-    function updateCountdowns() {
-        const timers = document.querySelectorAll('.countdown-timer');
-        const now = new Date();
-        timers.forEach(timer => {
-            const targetTime = new Date(timer.getAttribute('data-time'));
-            const diff = targetTime - now;
-
-            if (diff > 0) {
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                const mins = Math.floor((diff / 1000 / 60) % 60);
-                
-                let timeStr = "";
-                if (days > 0) {
-                    timeStr = `${days} 天`;
-                } else if (hours > 0) {
-                    timeStr = `${hours} 小時`;
-                } else if (mins > 0) {
-                    timeStr = `${mins} 分鐘`;
-                } else {
-                    timeStr = `即將更新`;
-                }
-                timer.textContent = timeStr;
-            } else {
-                timer.textContent = "已更新";
-                const wrapper = timer.closest('.countdown-wrapper');
-                if (wrapper) {
-                    wrapper.classList.add('updated');
-                }
-            }
-        });
-    }
-
-    updateCountdowns();
-    setInterval(updateCountdowns, 60000);
 });
 </script>
 {% endblock %}

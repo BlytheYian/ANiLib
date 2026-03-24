@@ -20,14 +20,14 @@
         
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="text-decoration-none">首頁</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'ani_lib' %}" class="text-decoration-none">動畫庫</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="breadcrumb-link text-decoration-none">首頁</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ani_lib' %}" class="breadcrumb-link text-decoration-none">動畫庫</a></li>
                 <li class="breadcrumb-item active" aria-current="page">{{ ani.title }}</li>
             </ol>
         </nav>
 
         <div class="row">
-            <div class="col-md-4 mb-4 mb-md-0">
+            <div class="col-md-4 mb-4 mb-md-0 d-flex flex-column align-items-center align-items-md-start">
                 {% if ani.poster %}
                     <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow object-fit-cover" style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" loading="lazy" alt="{{ ani.title }} 海報">
                 {% else %}
@@ -35,19 +35,39 @@
                         <span class="fs-4 text-center">暫無圖片<br>(No Image)</span>
                     </div>
                 {% endif %}
-                <div id="loading-spinner" class="htmx-indicator text-center py-4">
-                    <div class="spinner-border" style="color: #7caac5 !important;" role="status">
-                        <span class="visually-hidden">載入中...</span>
-                    </div>
-                </div>
             </div>
 
             <div class="col-md-8">
                 <h1 class="display-5 fw-bold mb-2">{{ ani.title }}</h1>
                 
-                <h6 class="text-muted mb-4">
+                <h6 class="text-muted">
                     {{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span>
                 </h6>
+                <h6 class="text-muted mb-4">
+                {% if ani.tags.all %}
+                        {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %}/{% endif %}{% endfor %}
+                {% endif %}
+                </h6>
+
+                <div class="mb-4 text-body">
+                    {% if ani.creators.all %}
+                    <div class="mb-2">
+                        <span class="fw-bold text-secondary me-2"> 主創：</span>
+                        <span>
+                            {% for creator in ani.creators.all %}{{ creator.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if ani.studio.all %}
+                    <div class="mb-2">
+                        <span class="fw-bold text-secondary me-2"> 製作：</span>
+                        <span>
+                            {% for s in ani.studio.all %}{{ s.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
 
                 <hr>
 
@@ -66,6 +86,10 @@
 <style>
     .bg-body {
         background-color: rgba(var(--bs-body-bg-rgb), 0.9) !important;
+    }
+    .breadcrumb-link {
+        color: #7caac5 !important;
+        font-weight: bold;
     }
 </style>
 {% endblock %}
