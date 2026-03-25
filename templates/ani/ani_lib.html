@@ -1,4 +1,4 @@
-{% extends "ani/navbar.html" %}
+{% extends "navbar.html" %}
 
 {% block title %}動畫庫 | ANiLib{% endblock %}
 
@@ -61,28 +61,7 @@
     </div>
 </div>
 
-<button id="scrollToTopBtn" class="btn rounded-circle shadow-lg d-flex align-items-center justify-content-center" title="回到頂部">
-    <i class="bi bi-chevron-up fs-5 text-white"></i>
-</button>
-
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const scrollToTopBtn = document.getElementById("scrollToTopBtn");
-        
-        window.addEventListener("scroll", () => {
-            if (window.scrollY > 300) {
-                scrollToTopBtn.classList.add("show");
-            } else {
-                scrollToTopBtn.classList.remove("show");
-            }
-        });
-
-        scrollToTopBtn.addEventListener("click", () => {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-        });
-    });
-</script>
 
 <style>
     .hover-shadow {
@@ -99,28 +78,6 @@
     
     .htmx-request#loading-spinner {
         display: block !important;
-    }
-
-    #scrollToTopBtn {
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        width: 50px;
-        height: 50px;
-        background-color: #4a4a4a;
-        border: none;
-        z-index: 1000;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-    }
-    #scrollToTopBtn:hover {
-        background-color: #7caac5;
-        transform: translateY(-5px);
-    }
-    #scrollToTopBtn.show {
-        opacity: 1;
-        visibility: visible;
     }
     .dropdown-item.active, .dropdown-item:active {
         background-color: #7caac5 !important;

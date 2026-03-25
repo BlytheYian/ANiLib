@@ -1,4 +1,4 @@
-{% extends "ani/navbar.html" %}
+{% extends "navbar.html" %}
 
 {% block title %}{{ ani.title }} | ANiLib{% endblock %}
 
@@ -41,12 +41,12 @@
                 <h1 class="display-5 fw-bold mb-2">{{ ani.title }}</h1>
                 
                 <h6 class="text-muted">
-                    {{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span>
+                {% if ani.tags.all %}
+                        {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %} / {% endif %}{% endfor %}
+                {% endif %}
                 </h6>
                 <h6 class="text-muted mb-4">
-                {% if ani.tags.all %}
-                        {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %}/{% endif %}{% endfor %}
-                {% endif %}
+                    {{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span>
                 </h6>
 
                 <div class="mb-4 text-body">

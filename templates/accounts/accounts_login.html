@@ -1,0 +1,77 @@
+{% extends "navbar.html" %}
+
+{% block title %}登入 | ANiLib{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center mt-5 mb-5">
+    
+    <div class="card shadow-lg border-0 rounded-4" style="max-width: 400px; width: 100%;">
+        <div class="card-body p-4 p-md-5">
+            <h2 class="text-center fw-bold mb-4" style="color: #333;">會員登入</h2>
+            
+            <form method="post" class="login-form">
+                {% csrf_token %}
+                
+                {{ form.as_p }}
+                
+                <button type="submit" class="btn w-100 mt-3 fw-bold custom-btn">登入</button>
+            </form>
+            
+            <div class="text-center mt-4 text-muted">
+                還沒有帳號？ <a href="{% url 'signup' %}" class="custom-link">點我註冊</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-form p {
+        margin-bottom: 1.25rem;
+    }
+    .login-form label {
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+    }
+    .login-form input {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        font-size: 1rem;
+        border: 1px solid #ced4da; /* Bootstrap 預設邊框色 */
+        border-radius: 0.375rem;   /* Bootstrap 預設圓角 */
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .login-form input:focus {
+        border-color: #7caac5;
+        outline: none;
+        box-shadow: 0 0 0 0.25rem rgba(124, 170, 197, 0.3);
+    }
+    
+    .custom-btn {
+        background-color: #7caac5;
+        color: white;
+        border: none;
+        padding: 0.6rem;
+        font-size: 1.1rem;
+        transition: opacity 0.3s ease;
+    }
+    .custom-btn:hover {
+        background-color: #7caac5;
+        color: white;
+        opacity: 0.85;
+    }
+    
+    .custom-link {
+        color: #7caac5;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .custom-link:hover {
+        color: #7caac5;
+        text-decoration: underline;
+        opacity: 0.85;
+    }
+</style>
+{% endblock %}

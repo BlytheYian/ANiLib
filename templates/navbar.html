@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ANiLib{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        [data-bs-theme="dark"] { 
+            --bs-body-bg: #121212;
+        }
+        [data-bs-theme="dark"] .hover-shadow:hover {
+            box-shadow: 0 15px 30px rgba(166, 157, 157, 0.15) !important;
+        }
+        .navbar-brand { font-weight: 800; letter-spacing: 1px; }
+
+        .nav-link {
+            transition: transform 0.2s ease, color 0.2s ease !important;
+            display: inline-block;
+        }
+        .nav-link:hover {
+            color: #7caac5 !important;
+            transform: scale(1.1);
+        
+        }
+        #userDropdown::after {
+            display: none !important;
+        }
+        #theme-toggle:hover {
+            background-color: #7caac5 !important;
+        }
+
+        .status-badge[data-status="ONGOING"] { border-color: #4cce91; color: #4cce91; }
+        .status-badge[data-status="FINISHED"] { border-color: rgb(118, 177, 236); color: rgb(118, 177, 236); }
+        .status-badge[data-status="CANCELLED"] { border-color: #ff6d7c; color: #ff6d7c; }
+        .status-badge[data-status="UPCOMING"] { border-color: #e7b900; color: #e7b900; }
+        .status-badge[data-status="CROWDFUNDING"] { border-color: #bd84ef; color: #bd84ef; }
+        .status-badge[data-status="PILOT"] { border-color: #96697a; color: #96697a; }
+        .status-badge[data-status="GREENLIGHT"] { border-color: #ff85d8; color: #ff85d8; }
+        .status-badge { 
+            border: 2px solid;
+            border-color: #a0adb9;
+            font-weight: 600;
+            color: #a0adb9;
+            padding: 0.35em 0.65em;
+        }
+        .btn-log {
+            background-color: #7caac5; 
+            color: #ffffff;
+        }
+        .btn-log:hover {
+            background-color: #7caac5;
+            color: #ffffff;
+            opacity: 0.85;
+        }
+
+        .custom-input:focus {
+            border-color: #7caac5;
+            outline: none;
+            box-shadow: 0 0 0 0.25rem rgba(124, 170, 197, 0.3);
+        }
+        .custom-btn:hover {
+            background-color: #7caac5;
+            opacity: 0.85;
+        }
+        .dropdown-item:hover {
+            background-color: rgba(124, 170, 197, 0.1);
+            color: #7caac5;
+        }
+
+        #scrollToTopBtn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background-color: #4a4a4a;
+            border: none;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        #scrollToTopBtn:hover {
+            background-color: #7caac5;
+            transform: translateY(-5px);
+        }
+        #scrollToTopBtn.show {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body data-bs-theme="light">
+    <nav class="navbar navbar-expand-lg border-bottom sticky-top bg-body-tertiary">
+        <div class="container-fluid px-3 px-lg-5 align-items-center">
+            
+            <a class="navbar-brand fw-bold me-2" href="{% url 'ani_index' %}">ANiLib</a>
+
+            <button class="navbar-toggler p-1 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon" style="width: 1.1rem; height: 1.1rem;"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold px-lg-3" href="{% url 'ani_lib' %}">動畫庫</a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center mt-2 mt-lg-0 gap-2 gap-lg-3">
+                    
+                    <form class="flex-grow-1 mb-0" action="{% url 'ani_search' %}" method="get">
+                        <input class="form-control rounded-pill" type="search" name="q" placeholder="搜尋..." autocomplete="off" aria-label="Search" style="min-width: 150px;">
+                    </form>
+
+                    <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;" type="button">
+                        <i id="theme-icon" class="bi bi-sun-fill"></i>
+                    </button>
+
+                    {% if user.is_authenticated %}
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center p-0" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #7caac5; text-decoration: none;">
+                                {% if user.avatar %}
+                                    <img src="{% static 'images/avatars/' %}{{ user.avatar }}" alt="avatar" class="rounded-circle me-1" style="width: 38px; height: 38px; object-fit: cover;">
+                                {% else %}
+                                    <i class="bi bi-person-circle fs-3 me-2" style="color: #7caac5;"></i>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
+                                <li><h6 class="dropdown-header fw-bold text-secondary fs-6 mb-1 d-none d-sm-block">{{ user.username }}</h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item fw-bold text-secondary" href="#">個人資料</a></li>
+                                <li><a class="dropdown-item fw-bold text-secondary" href="#">我的追番</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{% url 'logout' %}" method="post" class="m-0 p-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item text-danger fw-bold w-100 text-start">
+                                            <i class="bi bi-box-arrow-right me-2"></i>登出
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <div class="d-flex flex-shrink-0">
+                            <button type="button" class="btn me-2 fw-bold btn-log" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                登入
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    {% if not user.is_authenticated %}
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="loginModalLabel" style="color: #333;">會員登入</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body p-4">
+                    <form action="{% url 'login' %}?next={{ request.path }}" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label fw-bold" style="color: #444;">帳號</label>
+                            <input type="text" name="username" class="form-control custom-input" id="id_username" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="id_password" class="form-label fw-bold" style="color: #444;">密碼</label>
+                            <input type="password" name="password" class="form-control custom-input" id="id_password" required>
+                        </div>
+                        
+                        <button type="submit" class="btn w-100 fw-bold text-white custom-btn" style="background-color: #7caac5;">登入</button>
+                    </form>
+                    
+                    <div class="text-center mt-3 text-muted" style="font-size: 0.9rem;">
+                        還沒有帳號？ <a href="{% url 'signup' %}" style="color: #7caac5; font-weight: 600; text-decoration: none;">點我註冊</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <button id="scrollToTopBtn" class="btn rounded-circle shadow-lg d-flex align-items-center justify-content-center" title="回到頂部">
+        <i class="bi bi-chevron-up fs-5 text-white"></i>
+    </button>
+
+    {% block content %}
+    {% endblock %}
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const htmlElement = document.documentElement; 
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+
+            const savedTheme = localStorage.getItem('site_theme') || 'light';
+            applyTheme(savedTheme);
+
+            themeToggleBtn.addEventListener('click', () => {
+                const currentTheme = htmlElement.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                applyTheme(newTheme);
+            });
+
+            function applyTheme(theme) {
+                htmlElement.setAttribute('data-bs-theme', theme);
+                localStorage.setItem('site_theme', theme);
+                themeIcon.className = theme === 'light' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+                document.body.setAttribute('data-bs-theme', theme);
+            }
+            const scrollToTopBtn = document.getElementById("scrollToTopBtn");
+            window.addEventListener("scroll", () => {
+                if (window.scrollY > 700) {
+                    scrollToTopBtn.classList.add("show");
+                } else {
+                    scrollToTopBtn.classList.remove("show");
+                }
+            });
+            scrollToTopBtn.addEventListener("click", () => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            });
+        });
+    </script>
+</body>
+</html>

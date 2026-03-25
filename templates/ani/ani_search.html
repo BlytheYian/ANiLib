@@ -1,4 +1,4 @@
-{% extends "ani/navbar.html" %}
+{% extends "navbar.html" %}
 
 {% block title %}搜尋結果 - {{ query }} | ANiLib{% endblock %}
 
@@ -31,7 +31,7 @@
         <div class="col-12 w-100 text-center py-5 my-5">
             <i class="bi bi-search text-muted display-1"></i>
             <p class="text-muted mt-3">找不到符合「{{ query }}」的動畫資料......</p>
-            <a href="{% url 'ani_lib' %}" class="btn btn-outline-secondary mt-2 rounded-pill">返回總動畫庫</a>
+            <a href="{% url 'ani_lib' %}" class="btn btn-outline-secondary mt-2 rounded-pill">返回動畫庫</a>
         </div>
     {% endif %}
     
