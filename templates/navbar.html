@@ -132,8 +132,8 @@
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
                                 <li><h6 class="dropdown-header fw-bold text-secondary fs-6 mb-1 d-none d-sm-block">{{ user.username }}</h6></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item fw-bold text-secondary" href="#">個人資料</a></li>
-                                <li><a class="dropdown-item fw-bold text-secondary" href="#">我的追番</a></li>
+                                <li><a class="dropdown-item fw-bold text-secondary" href="{% url 'accounts' %}">個人資料</a></li>
+                                <li><a class="dropdown-item fw-bold text-secondary" href="{% url 'liked' %}">我的追番</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{% url 'logout' %}" method="post" class="m-0 p-0">
@@ -168,26 +168,65 @@
                 </div>
                 
                 <div class="modal-body p-4">
-                    <form action="{% url 'login' %}?next={{ request.path }}" method="post">
+                    <form id="loginForm" action="{% url 'login' %}?next={{ request.path }}" method="post">
                         {% csrf_token %}
+                        <div id="loginError" class="alert alert-danger d-none py-2 text-center" style="font-size: 0.9rem;"></div>
+                        
                         <div class="mb-3">
                             <label for="id_username" class="form-label fw-bold" style="color: #444;">帳號</label>
-                            <input type="text" name="username" class="form-control custom-input" id="id_username" required>
+                            <input type="text" name="username" class="form-control custom-input" id="id_username" autocomplete="username" required>
                         </div>
                         
                         <div class="mb-4">
                             <label for="id_password" class="form-label fw-bold" style="color: #444;">密碼</label>
-                            <input type="password" name="password" class="form-control custom-input" id="id_password" required>
+                            <input type="password" name="password" class="form-control custom-input" id="id_password" autocomplete="current-password" required>
                         </div>
                         
-                        <button type="submit" class="btn w-100 fw-bold text-white custom-btn" style="background-color: #7caac5;">登入</button>
+                        <button type="submit" id="loginSubmitBtn" class="btn w-100 fw-bold text-white custom-btn" style="background-color: #7caac5;">登入</button>
                     </form>
                     
                     <div class="text-center mt-3 text-muted" style="font-size: 0.9rem;">
-                        還沒有帳號？ <a href="{% url 'signup' %}" style="color: #7caac5; font-weight: 600; text-decoration: none;">點我註冊</a>
+                        還沒有帳號？ <a href="#" data-bs-toggle="modal" data-bs-target="#signupModal" style="color: #7caac5; font-weight: 600; text-decoration: none;">點我註冊</a>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="signupModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="signupModalLabel" style="color: #333;">會員註冊</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="signupForm" action="{% url 'signup' %}?next={{ request.path }}" method="post">
+                        {% csrf_token %}
+                        <div id="signupError" class="alert alert-danger d-none py-2 text-center" style="font-size: 0.9rem;"></div>
+                        
+                        <div class="mb-3">
+                            <label for="signup_username" class="form-label fw-bold" style="color: #444;">帳號名稱</label>
+                            <input type="text" name="username" class="form-control custom-input" id="signup_username" required>
+                        </div>
 
+                        <div class="mb-3">
+                            <label for="signup_email" class="form-label fw-bold" style="color: #444;">電子郵件</label>
+                            <input type="email" name="email" class="form-control custom-input" id="signup_email" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password1" class="form-label fw-bold" style="color: #444;">密碼</label>
+                            <input type="password" name="password1" class="form-control custom-input" id="signup_password1" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="signup_password2" class="form-label fw-bold" style="color: #444;">確認密碼</label>
+                            <input type="password" name="password2" class="form-control custom-input" id="signup_password2" required>
+                        </div>
+                        
+                        <button type="submit" id="signupSubmitBtn" class="btn w-100 fw-bold text-white custom-btn" style="background-color: #7caac5;">註冊</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -233,6 +272,93 @@
             scrollToTopBtn.addEventListener("click", () => {
                 window.scrollTo({ top: 0, behavior: "smooth" });
             });
+
+            const loginForm = document.getElementById('loginForm');
+            const loginError = document.getElementById('loginError');
+            const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const originalBtnText = loginSubmitBtn.textContent;
+                    loginSubmitBtn.disabled = true;
+                    loginSubmitBtn.textContent = '登入中...';
+                    loginError.classList.add('d-none');
+
+                    fetch(loginForm.action, {
+                        method: 'POST',
+                        body: new FormData(loginForm),
+                    })
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                        } else if (response.status === 429) {
+                            loginError.textContent = '錯誤次數過多！請稍後再試。';
+                            loginError.classList.remove('d-none');
+                            loginSubmitBtn.disabled = false;
+                            loginSubmitBtn.textContent = originalBtnText;
+                        } else if (response.status === 403) {
+                            loginError.textContent = '您的帳號無權限或已被停權，請聯絡管理員。';
+                            loginError.classList.remove('d-none');
+                            loginSubmitBtn.disabled = false;
+                            loginSubmitBtn.textContent = originalBtnText;
+                        } else {
+                            loginError.textContent = '帳號或密碼錯誤，請重新輸入。';
+                            loginError.classList.remove('d-none');
+                            loginSubmitBtn.disabled = false;
+                            loginSubmitBtn.textContent = originalBtnText;
+                        }
+                    })
+                });
+            }
+            const signupForm = document.getElementById('signupForm');
+            const signupError = document.getElementById('signupError');
+            const signupSubmitBtn = document.getElementById('signupSubmitBtn');
+
+            if (signupForm) {
+                signupForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const password1 = document.getElementById('signup_password1').value;
+                    const password2 = document.getElementById('signup_password2').value;
+
+                    if (password1 !== password2) {
+                        signupError.textContent = '輸入的密碼不一致。';
+                        signupError.classList.remove('d-none');
+                        return;
+                    }
+
+                    const originalBtnText = signupSubmitBtn.textContent;
+                    signupSubmitBtn.disabled = true;
+                    signupSubmitBtn.textContent = '註冊中...';
+                    signupError.classList.add('d-none');
+
+                    fetch(signupForm.action, {
+                        method: 'POST',
+                        body: new FormData(signupForm),
+                    })
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                        } else if (response.status === 400) {
+                            signupError.textContent = '帳號已被使用或格式錯誤。';
+                            signupError.classList.remove('d-none');
+                        } else {
+                            signupError.textContent = '註冊失敗，請檢查您輸入的資料。';
+                            signupError.classList.remove('d-none');
+                        }
+                    })
+                    .catch(error => {
+                        signupError.textContent = '發生連線錯誤，請稍後再試。';
+                        signupError.classList.remove('d-none');
+                    })
+                    .finally(() => {
+                        signupSubmitBtn.disabled = false;
+                        signupSubmitBtn.textContent = originalBtnText;
+                    });
+                });
+            }
         });
     </script>
 </body>

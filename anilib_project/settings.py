@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_admin_listfilter_dropdown',
     'imagekit',
+    'axes',
     "ani",
     "accounts",
 ]
@@ -58,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'anilib_project.urls' # anilib_project/urls.py
@@ -108,6 +111,13 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesBackend',    
+    'django.contrib.auth.backends.ModelBackend', 
+]
+AXES_FAILURE_LIMIT = 5 
+AXES_COOLOFF_TIME = timedelta(minutes=10)
+AXES_RESET_ON_SUCCESS = True
 
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/admin/login/'

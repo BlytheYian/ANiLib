@@ -63,7 +63,95 @@
 
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 使用「事件委派」: 監聽整個 document 的點擊事件
+        // 這樣就不需要去管 HTMX 載入新項目後還要重新綁定的問題
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.follow-heart-btn');
+            if (!btn) return; // 如果點擊的不是愛心按鈕，就直接返回
+
+            e.preventDefault(); 
+            e.stopPropagation();
+
+            const animeId = btn.getAttribute('data-anime-id');
+            if (!animeId) return;
+
+            const isFollowing = btn.classList.contains('is-following');
+            const action = isFollowing ? 'unfollow' : 'follow';
+
+            try {
+                const response = await fetch('/accounts/follow/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ anime_id: animeId, action: action })
+                });
+
+                if (response.ok) {
+                    if (isFollowing) {
+                        btn.classList.remove('is-following');
+                        btn.innerHTML = '<i class="bi bi-heart"></i>';
+                    } else {
+                        btn.classList.add('is-following');
+                        btn.innerHTML = '<i class="bi bi-heart-fill"></i>';
+                    }
+                } else if (response.status === 401 || response.status === 403) {
+                    alert('請先登入才能收藏動畫喔！');
+                }
+            } catch (error) {
+                console.error('更新收藏狀態失敗', error);
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+
 <style>
+    /* 愛心按鈕樣式 */
+    .follow-heart-btn {
+        position: absolute;
+        bottom: 8px;
+        right: 8px; /* 移至右下角 */
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.4);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.1rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        backdrop-filter: blur(2px);
+    }
+    .follow-heart-btn:hover {
+        transform: scale(1.15);
+        background: rgba(0, 0, 0, 0.6);
+    }
+    .follow-heart-btn.is-following {
+        color: #ff6d7c;
+    }
+
     .hover-shadow {
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }

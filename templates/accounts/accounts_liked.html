@@ -1,0 +1,133 @@
+{% extends "navbar.html" %}
+
+{% block title %}我的追番 | ANiLib{% endblock %}
+
+{% block content %}
+<div class="container mb-5 mt-4" style="min-height: calc(100vh - 200px);">
+    <div class="d-flex justify-content-between align-items-end mb-4 px-2">
+        <div>
+            <h2 class="fw-bold mb-0">我的追番</h2>
+            <p class="text-muted mb-0">您收藏的所有喜歡的作品</p>
+        </div>
+    </div>
+
+    <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4" id="ani-grid">
+        {% if not page_obj %}
+            <div class="col-12 w-100 text-center py-5 my-5">
+                <i class="bi bi-heartbreak text-muted display-1"></i>
+                <p class="text-muted mt-3">您目前還沒有收藏任何動畫喔！</p>
+                <a href="{% url 'ani_lib' %}" class="btn mt-3 fw-bold custom-btn" style="background-color: #7caac5; color: white;">去探索動畫</a>
+            </div>
+        {% else %}
+            {% include "ani/partials/ani_items.html" %}
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* 愛心按鈕樣式 */
+    .follow-heart-btn {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.4);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.1rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        backdrop-filter: blur(2px);
+    }
+    .follow-heart-btn:hover {
+        transform: scale(1.15);
+        background: rgba(0, 0, 0, 0.6);
+    }
+    .follow-heart-btn.is-following {
+        color: #ff6d7c;
+    }
+    .hover-shadow {
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .hover-shadow:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 使用事件委派監聽點擊事件
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.follow-heart-btn');
+            if (!btn) return;
+
+            e.preventDefault(); 
+            e.stopPropagation();
+
+            const animeId = btn.getAttribute('data-anime-id');
+            if (!animeId) return;
+
+            try {
+                const response = await fetch('/accounts/follow/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ anime_id: animeId, action: 'unfollow' })
+                });
+
+                if (response.ok) {
+                    btn.classList.remove('is-following');
+                    btn.innerHTML = '<i class="bi bi-heart"></i>';
+                    
+                    const item = btn.closest('.col');
+                    if (item) {
+                        item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        item.style.opacity = '0';
+                        item.style.transform = 'scale(0.9)';
+                        
+                        setTimeout(() => {
+                            item.remove();
+                            const remaining = document.querySelectorAll('#ani-grid > .col');
+                            if (remaining.length === 0) {
+                                document.getElementById('ani-grid').innerHTML = `
+                                    <div class="col-12 w-100 text-center py-5 my-5">
+                                        <i class="bi bi-heartbreak text-muted display-1"></i>
+                                        <p class="text-muted mt-3">您目前還沒有收藏任何動畫喔！</p>
+                                        <a href="{% url 'ani_lib' %}" class="btn mt-3 fw-bold custom-btn" style="background-color: #7caac5; color: white;">去探索動畫</a>
+                                    </div>
+                                `;
+                            }
+                        }, 300);
+                    }
+                }
+            } catch (error) {
+                console.error('更新收藏狀態失敗', error);
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

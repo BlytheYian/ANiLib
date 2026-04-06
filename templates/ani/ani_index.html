@@ -34,10 +34,20 @@
                             
                             <div class="col-5 text-center">
                                 {% if ani.poster %}
-                                <img src="{{ ani.poster.url }}" 
-                                    class="img-fluid rounded-3 shadow-lg border border-light border-opacity-25 object-fit-cover mx-auto d-block" 
-                                    style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;"
-                                    loading="lazy">
+                                <div class="position-relative d-inline-block">
+                                    <button class="follow-heart-btn hero-heart-btn {% if request.user.is_authenticated and ani in request.user.following_anis.all %}is-following{% endif %}" 
+                                            data-anime-id="{{ ani.pk }}">
+                                        {% if request.user.is_authenticated and ani in request.user.following_anis.all %}
+                                            <i class="bi bi-heart-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-heart"></i>
+                                        {% endif %}
+                                    </button>
+                                    <img src="{{ ani.poster.url }}" 
+                                        class="img-fluid rounded-3 shadow-lg border border-light border-opacity-25 object-fit-cover mx-auto d-block" 
+                                        style="max-height: 430px; aspect-ratio: 26 / 40; max-width: 280px; width: 100%;"
+                                        loading="lazy">
+                                </div>
                                 {% endif %}
                             </div>
 
@@ -151,18 +161,29 @@
             <div class="flex-shrink-0 hover-shadow rounded-4" style="width: 160px;">
                 <a href="{% url 'ani_detail' ani.pk %}" class="text-decoration-none text-reset d-block hover-scale">
                     
-                    {% if ani.poster %}
-                        <img src="{{ ani.poster_thumbnail.url }}" 
-                            class="img-fluid rounded-3 shadow-sm object-fit-cover w-100 mb-2" 
-                            style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" 
-                            loading="lazy"
-                            alt="{{ ani.title }}">
-                    {% else %}
-                        <div class="rounded-3 shadow-sm w-100 mb-2 bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-muted" 
-                            style="aspect-ratio: 3 / 4;">
-                            <span>暫無海報</span>
-                        </div>
-                    {% endif %}
+                    <div class="position-relative mb-2">
+                        <button class="follow-heart-btn {% if request.user.is_authenticated and ani in request.user.following_anis.all %}is-following{% endif %}" 
+                                data-anime-id="{{ ani.pk }}">
+                            {% if request.user.is_authenticated and ani in request.user.following_anis.all %}
+                                <i class="bi bi-heart-fill"></i>
+                            {% else %}
+                                <i class="bi bi-heart"></i>
+                            {% endif %}
+                        </button>
+                        
+                        {% if ani.poster %}
+                            <img src="{{ ani.poster_thumbnail.url }}" 
+                                class="img-fluid rounded-3 shadow-sm object-fit-cover w-100" 
+                                style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" 
+                                loading="lazy"
+                                alt="{{ ani.title }}">
+                        {% else %}
+                            <div class="rounded-3 shadow-sm w-100 bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-muted" 
+                                style="aspect-ratio: 3 / 4;">
+                                <span>暫無海報</span>
+                            </div>
+                        {% endif %}
+                    </div>
                     <div class="card-body p-1">
                         <h6 class="text-truncate fw-bold mb-1" style="font-size: 0.95rem;" title="{{ ani.title }}">{{ ani.title }}</h6>
                         <p class="small text-muted mb-1">{{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span></p>
@@ -267,6 +288,43 @@
         background-color: rgba(124, 170, 197, 0.2);
     }
 
+    /* 愛心按鈕樣式 */
+    .follow-heart-btn {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.4);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.1rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        backdrop-filter: blur(2px);
+    }
+    .follow-heart-btn:hover {
+        transform: scale(1.15);
+        background: rgba(0, 0, 0, 0.6);
+    }
+    .follow-heart-btn.is-following {
+        color: #ff6d7c;
+    }
+    
+    /* 輪播圖專用愛心位置與大小調整 */
+    .hero-heart-btn {
+        bottom: 16px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+    }
+
     .countdown-wrapper {
         color: #6b9ab8;
         font-size: 0.75rem;
@@ -282,6 +340,62 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    // 愛心按鈕點擊委派
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.follow-heart-btn');
+        if (!btn) return;
+
+        e.preventDefault(); 
+        e.stopPropagation();
+
+        const animeId = btn.getAttribute('data-anime-id');
+        if (!animeId) return;
+
+        const isFollowing = btn.classList.contains('is-following');
+        const action = isFollowing ? 'unfollow' : 'follow';
+
+        try {
+            const response = await fetch('/accounts/follow/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ anime_id: animeId, action: action })
+            });
+
+            if (response.ok) {
+                if (isFollowing) {
+                    btn.classList.remove('is-following');
+                    btn.innerHTML = '<i class="bi bi-heart"></i>';
+                } else {
+                    btn.classList.add('is-following');
+                    btn.innerHTML = '<i class="bi bi-heart-fill"></i>';
+                }
+            } else if (response.status === 401 || response.status === 403) {
+                alert('請先登入才能收藏動畫喔！');
+            }
+        } catch (error) {
+            console.error('更新收藏狀態失敗', error);
+        }
+    });
+
+    // 取得 CSRF Token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
     const scrollContainer = document.getElementById("aniScrollContainer");
     const slideLeftBtn = document.getElementById("slideLeftBtn");
     const slideRightBtn = document.getElementById("slideRightBtn");

@@ -4,6 +4,9 @@ from django.db.models import Q,F,Case, When, Value, IntegerField
 from .models import Ani, Episode
 from django.utils import timezone
 from datetime import timedelta
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 def ani_index(request):
     priority_qs = ['CROWDFUNDING', 'UPCOMING', 'PILOT', 'GREENLIGHT']
@@ -39,7 +42,7 @@ def ani_index(request):
     })
 
 def ani_detail(request, pk):
-    queryset = Ani.objects.prefetch_related('tags', 'creators', 'studio')
+    queryset = Ani.objects.prefetch_related('tags', 'creators', 'studio', 'episodes')
     ani = get_object_or_404(queryset, pk=pk)
     return render(request, 'ani/ani_detail.html', {'ani': ani})
 
@@ -115,3 +118,24 @@ def ani_search(request):
         'page_obj': page_obj,
         'count': results.count() 
     })
+
+@require_POST
+def toggle_follow_anime(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+        
+    try:
+        data = json.loads(request.body)
+        anime_id = data.get('anime_id')
+        action = data.get('action')
+        
+        ani = get_object_or_404(Ani, pk=anime_id)
+        
+        if action == 'follow':
+            request.user.following_anis.add(ani)
+        elif action == 'unfollow':
+            request.user.following_anis.remove(ani)
+            
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

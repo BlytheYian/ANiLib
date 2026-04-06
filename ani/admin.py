@@ -59,7 +59,7 @@ class AniAdmin(admin.ModelAdmin):
     poster_preview.short_description = "海報預覽"
     banner_preview.short_description = "橫幅預覽"
 
-    readonly_fields = ['poster_preview', 'banner_preview']
+    readonly_fields = ['poster_preview', 'banner_preview']# 唯讀
     
     fieldsets = (
         ('基本資訊', {
