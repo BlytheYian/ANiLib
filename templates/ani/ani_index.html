@@ -288,7 +288,6 @@
         background-color: rgba(124, 170, 197, 0.2);
     }
 
-    /* 愛心按鈕樣式 */
     .follow-heart-btn {
         position: absolute;
         bottom: 8px;
@@ -316,7 +315,6 @@
         color: #ff6d7c;
     }
     
-    /* 輪播圖專用愛心位置與大小調整 */
     .hero-heart-btn {
         bottom: 16px;
         right: 16px;
@@ -340,7 +338,6 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // 愛心按鈕點擊委派
     document.addEventListener('click', async (e) => {
         const btn = e.target.closest('.follow-heart-btn');
         if (!btn) return;
@@ -380,7 +377,6 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // 取得 CSRF Token
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
