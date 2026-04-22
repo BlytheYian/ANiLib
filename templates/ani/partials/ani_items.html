@@ -14,7 +14,7 @@
             <div class="card h-100 border-0 shadow-sm hover-shadow transition rounded-3 overflow-hidden bg-body">
                 <div class="position-relative bg-secondary bg-opacity-10" style="height: 280px;">
                     <button class="follow-heart-btn {% if request.user.is_authenticated and ani in request.user.following_anis.all %}is-following{% endif %}" 
-                            data-anime-id="{{ ani.pk }}">
+                            data-animation-id="{{ ani.pk }}">
                         {% if request.user.is_authenticated and ani in request.user.following_anis.all %}
                             <i class="bi bi-heart-fill"></i>
                         {% else %}

@@ -65,17 +65,15 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // 使用「事件委派」: 監聽整個 document 的點擊事件
-        // 這樣就不需要去管 HTMX 載入新項目後還要重新綁定的問題
         document.addEventListener('click', async (e) => {
             const btn = e.target.closest('.follow-heart-btn');
-            if (!btn) return; // 如果點擊的不是愛心按鈕，就直接返回
+            if (!btn) return;
 
             e.preventDefault(); 
             e.stopPropagation();
 
-            const animeId = btn.getAttribute('data-anime-id');
-            if (!animeId) return;
+            const animationId = btn.getAttribute('data-animation-id');
+            if (!animationId) return;
 
             const isFollowing = btn.classList.contains('is-following');
             const action = isFollowing ? 'unfollow' : 'follow';
@@ -87,7 +85,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCookie('csrftoken')
                     },
-                    body: JSON.stringify({ anime_id: animeId, action: action })
+                    body: JSON.stringify({ animation_id: animationId, action: action })
                 });
 
                 if (response.ok) {
@@ -124,11 +122,10 @@
 </script>
 
 <style>
-    /* 愛心按鈕樣式 */
     .follow-heart-btn {
         position: absolute;
         bottom: 8px;
-        right: 8px; /* 移至右下角 */
+        right: 8px;
         z-index: 10;
         background: rgba(0, 0, 0, 0.4);
         border: none;

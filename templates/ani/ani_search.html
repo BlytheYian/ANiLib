@@ -34,12 +34,36 @@
             <a href="{% url 'ani_lib' %}" class="btn btn-outline-secondary mt-2 rounded-pill">返回動畫庫</a>
         </div>
     {% endif %}
-    
-</div>
     </div>
 </div>
 
 <style>
+    .follow-heart-btn {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        z-index: 10;
+        background: rgba(0, 0, 0, 0.4);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.1rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        backdrop-filter: blur(2px);
+    }
+    .follow-heart-btn:hover {
+        transform: scale(1.15);
+        background: rgba(0, 0, 0, 0.6);
+    }
+    .follow-heart-btn.is-following {
+        color: #ff6d7c;
+    }
     .hover-shadow {
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     }

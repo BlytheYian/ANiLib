@@ -28,13 +28,19 @@
 
         <div class="row">
             <div class="col-md-4 mb-4 mb-md-0 d-flex flex-column align-items-center align-items-md-start">
-                {% if ani.poster %}
-                    <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow object-fit-cover" style="max-height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;" loading="lazy" alt="{{ ani.title }} 海報">
-                {% else %}
-                    <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow" style="height: 420px; aspect-ratio: 24 / 40; max-width: 280px; width: 100%;">
-                        <span class="fs-4 text-center">暫無圖片<br>(No Image)</span>
-                    </div>
-                {% endif %}
+                <div class="position-relative d-inline-block w-100" style="max-width: 280px;">
+                    {% if ani.poster %}
+                        <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow object-fit-cover w-100" style="max-height: 420px; aspect-ratio: 24 / 40;" loading="lazy" alt="{{ ani.title }} 海報">
+                    {% else %}
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow w-100" style="height: 420px; aspect-ratio: 24 / 40;">
+                            <span class="fs-4 text-center">暫無圖片<br>(No Image)</span>
+                        </div>
+                    {% endif %}
+                    
+                    <button class="follow-heart-btn {% if user in ani.followers.all %}is-following{% endif %}" data-animation-id="{{ ani.id }}">
+                        <i class="bi {% if user in ani.followers.all %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="col-md-8">
@@ -91,5 +97,91 @@
         color: #7caac5 !important;
         font-weight: bold;
     }
+        
+        /* 愛心按鈕樣式 */
+        .follow-heart-btn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.3rem;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            backdrop-filter: blur(2px);
+        }
+        .follow-heart-btn:hover {
+            transform: scale(1.15);
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .follow-heart-btn.is-following {
+            color: #ff6d7c;
+        }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.follow-heart-btn');
+            if (!btn) return;
+
+            e.preventDefault(); 
+            e.stopPropagation();
+
+            const animationId = btn.getAttribute('data-animation-id');
+            if (!animationId) return;
+
+            const isFollowing = btn.classList.contains('is-following');
+            const action = isFollowing ? 'unfollow' : 'follow';
+
+            try {
+                const response = await fetch('/accounts/follow/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ animation_id: animationId, action: action })
+                });
+
+                if (response.ok) {
+                    if (isFollowing) {
+                        btn.classList.remove('is-following');
+                        btn.innerHTML = '<i class="bi bi-heart"></i>';
+                    } else {
+                        btn.classList.add('is-following');
+                        btn.innerHTML = '<i class="bi bi-heart-fill"></i>';
+                    }
+                } else if (response.status === 401 || response.status === 403) {
+                    alert('請先登入才能收藏動畫喔！');
+                }
+            } catch (error) {
+                console.error('更新收藏狀態失敗', error);
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
 {% endblock %}

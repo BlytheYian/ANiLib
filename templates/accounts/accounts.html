@@ -12,6 +12,16 @@
         </div>
     </div>
 
+    {% if messages %}
+    <div class="position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1080; margin-top: 70px;">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-pill px-5 py-2 auto-dismiss-alert" role="alert">
+            <span class="fw-bold">{{ message }}</span>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
         <div class="row px-2 g-4">
             <div class="col-12 col-md-4">
                 <div class="card border-0 shadow-sm rounded-4 hover-shadow text-center p-4 py-md-5 h-100">
@@ -144,6 +154,14 @@
                 const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                 modalInstance.hide();
             });
+        });
+
+        const autoDismissAlerts = document.querySelectorAll('.auto-dismiss-alert');
+        autoDismissAlerts.forEach(alertEl => {
+            setTimeout(() => {
+                const bsAlert = bootstrap.Alert.getInstance(alertEl) || new bootstrap.Alert(alertEl);
+                bsAlert.close();
+            }, 3000);
         });
     });
 </script>

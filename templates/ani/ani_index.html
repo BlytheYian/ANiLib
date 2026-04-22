@@ -36,7 +36,7 @@
                                 {% if ani.poster %}
                                 <div class="position-relative d-inline-block">
                                     <button class="follow-heart-btn hero-heart-btn {% if request.user.is_authenticated and ani in request.user.following_anis.all %}is-following{% endif %}" 
-                                            data-anime-id="{{ ani.pk }}">
+                                            data-animation-id="{{ ani.pk }}">
                                         {% if request.user.is_authenticated and ani in request.user.following_anis.all %}
                                             <i class="bi bi-heart-fill"></i>
                                         {% else %}
@@ -163,7 +163,7 @@
                     
                     <div class="position-relative mb-2">
                         <button class="follow-heart-btn {% if request.user.is_authenticated and ani in request.user.following_anis.all %}is-following{% endif %}" 
-                                data-anime-id="{{ ani.pk }}">
+                                data-animation-id="{{ ani.pk }}">
                             {% if request.user.is_authenticated and ani in request.user.following_anis.all %}
                                 <i class="bi bi-heart-fill"></i>
                             {% else %}
@@ -348,8 +348,8 @@ document.addEventListener("DOMContentLoaded", function() {
         e.preventDefault(); 
         e.stopPropagation();
 
-        const animeId = btn.getAttribute('data-anime-id');
-        if (!animeId) return;
+        const animationId = btn.getAttribute('data-animation-id');
+        if (!animationId) return;
 
         const isFollowing = btn.classList.contains('is-following');
         const action = isFollowing ? 'unfollow' : 'follow';
@@ -361,7 +361,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ anime_id: animeId, action: action })
+                body: JSON.stringify({ animation_id: animationId, action: action })
             });
 
             if (response.ok) {

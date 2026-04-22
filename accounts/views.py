@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import F
 from .forms import CustomUserCreationForm
+from django.contrib import messages
+from django.contrib.auth import get_user_model
 
 def signup_view(request):
     if request.method == 'POST':
@@ -41,20 +43,39 @@ def accounts_liked(request):
 @login_required(login_url='/accounts/login/')
 def accounts(request):
     available_avatars = [
-        {'file': 'avatar_default.png', 'name': '預設頭像 1'},
+        {'file': 'avatar_default.png', 'name': '佔位符'},
     ]
 
     if request.method == 'POST':
-        request.user.username = request.POST.get('username', request.user.username)
-        request.user.email = request.POST.get('email', request.user.email)
-        
+        new_username = request.POST.get('username', '').strip()
+        new_email = request.POST.get('email', '').strip()
         avatar_selection = request.POST.get('avatar')
-        # 提取出所有合法的檔名（file）進行驗證
-        valid_avatar_files = [avatar['file'] for avatar in available_avatars]
-        if avatar_selection in valid_avatar_files:
-            request.user.avatar = avatar_selection
+        
+        has_changed = False
+
+        if new_username and new_username != request.user.username:
+            User = get_user_model()
+            if User.objects.filter(username=new_username).exists():
+                messages.error(request, '此使用者名稱已有人使用，請換一個！')
+                return redirect('accounts')
+            request.user.username = new_username
+            has_changed = True
             
-        request.user.save()
+        if new_email and new_email != request.user.email:
+            request.user.email = new_email
+            has_changed = True
+        
+        valid_avatar_files = [avatar['file'] for avatar in available_avatars]
+        if avatar_selection and avatar_selection in valid_avatar_files and avatar_selection != request.user.avatar:
+            request.user.avatar = avatar_selection
+            has_changed = True
+            
+        if has_changed:
+            request.user.save()
+            messages.success(request, '個人資料已成功更新！')
+        else:
+            messages.info(request, '資料未進行任何修改。')
+            
         return redirect('accounts')
 
     return render(request, 'accounts/accounts.html', {'available_avatars': available_avatars})

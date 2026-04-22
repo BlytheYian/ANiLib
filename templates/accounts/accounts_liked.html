@@ -25,7 +25,6 @@
 </div>
 
 <style>
-    /* 愛心按鈕樣式 */
     .follow-heart-btn {
         position: absolute;
         bottom: 8px;
@@ -63,7 +62,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // 使用事件委派監聽點擊事件
         document.addEventListener('click', async (e) => {
             const btn = e.target.closest('.follow-heart-btn');
             if (!btn) return;
@@ -71,8 +69,8 @@
             e.preventDefault(); 
             e.stopPropagation();
 
-            const animeId = btn.getAttribute('data-anime-id');
-            if (!animeId) return;
+            const animationId = btn.getAttribute('data-animation-id');
+            if (!animationId) return;
 
             try {
                 const response = await fetch('/accounts/follow/', {
@@ -81,7 +79,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCookie('csrftoken')
                     },
-                    body: JSON.stringify({ anime_id: animeId, action: 'unfollow' })
+                    body: JSON.stringify({ animation_id: animationId, action: 'unfollow' })
                 });
 
                 if (response.ok) {

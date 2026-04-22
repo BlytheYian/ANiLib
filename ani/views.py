@@ -120,16 +120,16 @@ def ani_search(request):
     })
 
 @require_POST
-def toggle_follow_anime(request):
+def toggle_follow_animation(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Unauthorized'}, status=401)
         
     try:
         data = json.loads(request.body)
-        anime_id = data.get('anime_id')
+        animation_id = data.get('animation_id')
         action = data.get('action')
         
-        ani = get_object_or_404(Ani, pk=anime_id)
+        ani = get_object_or_404(Ani, pk=animation_id)
         
         if action == 'follow':
             request.user.following_anis.add(ani)
