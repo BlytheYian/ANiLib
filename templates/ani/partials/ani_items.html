@@ -37,7 +37,9 @@
                 </div>
                 
                 <div class="card-body p-3">
-                    <h6 class="card-title text-truncate mb-1 fw-bold text-body" title="{{ ani.title }}">{{ ani.title }}</h6>
+                    <h6 class="card-title text-truncate mb-1 fw-bold text-body" title="{{ ani.title }}">
+                        <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
+                    </h6>
                     <p class="card-text small text-muted mb-2">{{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span></p>
                     
                     <div class="d-flex flex-wrap gap-1 mt-2">

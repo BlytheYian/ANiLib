@@ -31,6 +31,11 @@
         #theme-toggle:hover {
             background-color: #7caac5 !important;
         }
+        #lang-toggle:hover {
+            background-color: #7caac5 !important;
+            border-color: #7caac5 !important;
+            color: #fff !important;
+        }
 
         .status-badge[data-status="ONGOING"] { border-color: #4cce91; color: #4cce91; }
         .status-badge[data-status="FINISHED"] { border-color: rgb(118, 177, 236); color: rgb(118, 177, 236); }
@@ -119,6 +124,8 @@
                     <button id="theme-toggle" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;" type="button">
                         <i id="theme-icon" class="bi bi-sun-fill"></i>
                     </button>
+
+                    <button id="lang-toggle" class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px; font-size: 0.65rem; font-weight: 700;" type="button">EN</button>
 
                     {% if user.is_authenticated %}
                         <div class="nav-item dropdown">
@@ -312,6 +319,31 @@
                     })
                 });
             }
+            const langToggleBtn = document.getElementById('lang-toggle');
+            const langCycle = ['en', 'ch', 'zh'];
+            const langLabels = { en: 'EN', ch: 'CH', zh: 'ZH' };
+
+            function applyLang(lang) {
+                langToggleBtn.textContent = langLabels[lang];
+                document.querySelectorAll('.ani-title').forEach(el => {
+                    el.textContent = el.dataset[lang] || el.dataset.en || el.textContent;
+                });
+                document.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
+            }
+
+            applyLang(localStorage.getItem('site_lang') || 'zh');
+
+            langToggleBtn.addEventListener('click', () => {
+                const cur = localStorage.getItem('site_lang') || 'zh';
+                const next = langCycle[(langCycle.indexOf(cur) + 1) % langCycle.length];
+                localStorage.setItem('site_lang', next);
+                applyLang(next);
+            });
+
+            document.addEventListener('htmx:afterSwap', () => {
+                applyLang(localStorage.getItem('site_lang') || 'zh');
+            });
+
             const signupForm = document.getElementById('signupForm');
             const signupError = document.getElementById('signupError');
             const signupSubmitBtn = document.getElementById('signupSubmitBtn');

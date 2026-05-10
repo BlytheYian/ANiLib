@@ -53,7 +53,7 @@
 
                             <div class="col-7 text-white text-start">
                                 <h1 class="fw-bold mb-2" style="font-size: clamp(1.2rem, 3.5vw, 3.5rem); line-height: 1.2;">
-                                    {{ ani.title }}
+                                    <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
                                 </h1>
                                 
                                 <p class="text-light-50 mb-2 mb-md-3" style="font-size: clamp(0.9rem, 1.5vw, 1.5rem);">
@@ -107,7 +107,9 @@
                             {% endif %}
                         </div>
                         <div class="flex-grow-1 ms-3 overflow-hidden">
-                            <h6 class="text-truncate fw-bold mb-1" style="font-size: 0.95rem;" title="{{ ep.ani.title }}">{{ ep.ani.title }}</h6>
+                            <h6 class="text-truncate fw-bold mb-1" style="font-size: 0.95rem;" title="{{ ep.ani.title }}">
+                                <span class="ani-title" data-en="{{ ep.ani.title }}" data-zh="{{ ep.ani.title_zh|default:ep.ani.title }}" data-ch="{{ ep.ani.title_ch|default:ep.ani.title }}">{{ ep.ani.title }}</span>
+                            </h6>
                             <div class="d-flex flex-column mt-1">
                                 <span class="text-muted small text-truncate" style="font-size: 0.8rem;" title="{% if ep.season %}第{{ ep.season }}季 {% endif %}第{{ ep.number }}集{% if ep.title %} - {{ ep.title }}{% endif %}">
                                     {% if ep.season %}第{{ ep.season }}季 {% endif %}第{{ ep.number }}集{% if ep.title %} - {{ ep.title }}{% endif %}
@@ -185,7 +187,9 @@
                         {% endif %}
                     </div>
                     <div class="card-body p-1">
-                        <h6 class="text-truncate fw-bold mb-1" style="font-size: 0.95rem;" title="{{ ani.title }}">{{ ani.title }}</h6>
+                        <h6 class="text-truncate fw-bold mb-1" style="font-size: 0.95rem;" title="{{ ani.title }}">
+                            <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
+                        </h6>
                         <p class="small text-muted mb-1">{{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span></p>
                     </div>
                 </a>

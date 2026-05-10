@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'axes',
     "ani",
     "accounts",
+    "arena",
 ]
 
 MIDDLEWARE = [

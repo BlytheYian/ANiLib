@@ -22,7 +22,9 @@
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="breadcrumb-link text-decoration-none">首頁</a></li>
                 <li class="breadcrumb-item"><a href="{% url 'ani_lib' %}" class="breadcrumb-link text-decoration-none">動畫庫</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ ani.title }}</li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
+                </li>
             </ol>
         </nav>
 
@@ -44,8 +46,16 @@
             </div>
 
             <div class="col-md-8">
-                <h1 class="display-5 fw-bold mb-2">{{ ani.title }}</h1>
-                
+                <h1 class="display-5 fw-bold mb-1">
+                    <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
+                </h1>
+
+                <div id="alt-titles-inline" class="text-muted mb-2 small"
+                    data-en="{{ ani.title }}"
+                    data-ch="{{ ani.title_ch|default:'' }}"
+                    data-zh="{{ ani.title_zh|default:'' }}">
+                </div>
+
                 <h6 class="text-muted">
                 {% if ani.tags.all %}
                         {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %} / {% endif %}{% endfor %}
@@ -127,6 +137,28 @@
 </style>
 
 <script>
+    function updateAltTitles(lang) {
+        const container = document.getElementById('alt-titles-inline');
+        if (!container) return;
+        const vals = { en: container.dataset.en, zh: container.dataset.zh, ch: container.dataset.ch };
+        const labels = { en: 'EN', zh: 'ZH', ch: 'CH' };
+        const currentHasValue = !!vals[lang];
+        const parts = [];
+        for (const key of ['en', 'zh', 'ch']) {
+            if (key === lang) continue;
+            if (!vals[key]) continue;
+            if (key === 'en' && !currentHasValue) continue;
+            parts.push(`<strong>${labels[key]}</strong>: ${vals[key]}`);
+        }
+        container.innerHTML = parts.join(' / ');
+        container.classList.toggle('d-none', parts.length === 0);
+    }
+
+    document.addEventListener('langchange', (e) => updateAltTitles(e.detail.lang));
+    document.addEventListener('DOMContentLoaded', () => {
+        updateAltTitles(localStorage.getItem('site_lang') || 'zh');
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', async (e) => {
             const btn = e.target.closest('.follow-heart-btn');
