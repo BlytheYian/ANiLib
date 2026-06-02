@@ -1,0 +1,25 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+{% if original and original.pk and original.IMDb_ID %}
+<li>
+    <button type="button" class="historylink" id="imdbSyncBtn" style="cursor:pointer; border:none; background:transparent; font-size:0.8125rem; padding:5px 15px; line-height:15px; height:auto;">
+        ⬇ 從 IMDb 更新此作品
+    </button>
+</li>
+{% endif %}
+{{ block.super }}
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+{% if original and original.pk and original.IMDb_ID %}
+{% include "admin/ani/ani/_imdb_sync_modal.html" %}
+<script>
+document.getElementById('imdbSyncBtn').addEventListener('click', function () {
+    startImdbSync('{% url "admin:ani_ani_imdb_sync_single" original.pk %}');
+});
+</script>
+{% endif %}
+{% endblock %}

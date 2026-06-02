@@ -1,0 +1,2535 @@
+{% extends "navbar.html" %}
+
+{% block title %}格鬥場 | ANiLib{% endblock %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Exo+2:wght@200;300;400&display=swap" rel="stylesheet">
+
+<style>
+    #startScreen {
+        height: calc(100vh - 56px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        background: #0a0a0f;
+    }
+    #startBgVideo {
+        position: absolute;
+        inset: 0;
+        width: 100%; height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        filter: brightness(0.4) saturate(0.8);
+    }
+    #arenaLayout {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(1.5rem, 3vh, 2.5rem);
+        padding: 2rem;
+        filter: url(#ca-filter);
+    }
+    /* 上方標題 */
+    #arenaTitle {
+        color: #fff;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.6em;
+        margin-bottom: clamp(1.5rem, 4vh, 3rem);
+    }
+    .title-small-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.15em;
+    }
+    .t-small {
+        font-family: 'Exo 2', sans-serif;
+        font-size: clamp(0.65rem, 1.2vw, 0.85rem);
+        letter-spacing: 0.3em;
+        opacity: 0.6;
+        font-weight: 300;
+        white-space: nowrap;
+    }
+    .t-arena {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: clamp(3rem, 7vw, 5.5rem);
+        letter-spacing: 0.15em;
+        line-height: 1;
+        background: linear-gradient(135deg, #fff 40%, #7caac5);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    /* 下方分割 */
+    #arenaBottom {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 2rem;
+    }
+    #arenaChar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #previewCanvas {
+        width: 130px; height: 230px;
+        opacity: 0.92;
+    }
+    #arenaRight {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.9rem;
+    }
+    .arena-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 1.4rem;
+        border: 1px solid rgba(124,170,197,0.35);
+        border-radius: 6px;
+        background: rgba(12,20,30,0.55);
+        color: #d0e8f5;
+        font-size: 0.95rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.18s;
+        backdrop-filter: blur(6px);
+        width: clamp(30vw, 35vw, 420px);
+    }
+    .arena-btn:hover {
+        background: rgba(124,170,197,0.22);
+        border-color: rgba(124,170,197,0.7);
+        color: #fff;
+        transform: translateX(4px);
+    }
+    .arena-btn.primary {
+        border-color: rgba(124,170,197,0.6);
+        background: rgba(124,170,197,0.18);
+    }
+    .arena-btn .btn-icon { font-size: 1.1rem; opacity: 0.8; }
+
+    #arenaChar { position: relative; }
+    /* 凹面暈影 */
+    #startScreen::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 80% at 50% 50%,
+            transparent 35%,
+            rgba(0,0,0,0.35) 70%,
+            rgba(0,0,0,0.72) 100%
+        );
+        z-index: 1;
+        pointer-events: none;
+    }
+    /* 顏色選擇 */
+    #colorPickerBtn {
+        margin-top: 0.6rem;
+        padding: 0.35rem 1rem;
+        border: 1px solid rgba(124,170,197,0.3);
+        border-radius: 20px;
+        background: rgba(12,20,30,0.5);
+        color: rgba(208,232,245,0.75);
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        backdrop-filter: blur(6px);
+        transition: all 0.15s;
+    }
+    #colorPickerBtn:hover { border-color: rgba(124,170,197,0.7); color: #fff; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .enemy-label {
+        position: fixed; pointer-events: none; z-index: 2000;
+        display: none; flex-direction: column; align-items: center; gap: 3px;
+        transform: translateX(-50%);
+    }
+    .enemy-label-name {
+        font-family: 'Exo 2', sans-serif; font-size: 0.65rem;
+        color: rgba(255,255,255,0.8); letter-spacing: 0.12em;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    .enemy-hp-track {
+        width: 50px; height: 4px;
+        background: rgba(255,255,255,0.15); border-radius: 2px; overflow: hidden;
+        position: relative;
+    }
+    .enemy-hp-fill {
+        position: absolute; inset: 0; background: #fff;
+        transform-origin: center; transform: scaleX(1);
+        transition: transform 0.2s, background 0.2s;
+    }
+    .wait-spinner {
+        width: 52px; height: 52px;
+        border: 3px solid rgba(124,170,197,0.2);
+        border-top-color: #7caac5;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+    }
+    .wait-label {
+        font-family: 'Exo 2', sans-serif;
+        color: rgba(208,232,245,0.75);
+        letter-spacing: 0.3em;
+        font-size: 0.9rem;
+        font-weight: 300;
+    }
+    #arenaRight { overflow: hidden; }
+    #btnPanel { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
+    #createRoomPanel {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.8rem;
+        width: clamp(30vw, 35vw, 420px);
+    }
+    .arena-input {
+        width: 100%;
+        padding: 0.65rem 1.2rem;
+        background: rgba(12,20,30,0.6);
+        border: 1px solid rgba(124,170,197,0.3);
+        border-radius: 6px;
+        color: #d0e8f5;
+        font-size: 0.9rem;
+        outline: none;
+        backdrop-filter: blur(6px);
+        box-sizing: border-box;
+        font-family: 'Exo 2', sans-serif;
+    }
+    .arena-input::placeholder { color: rgba(208,232,245,0.35); }
+    .arena-input:focus { border-color: rgba(124,170,197,0.65); }
+    #colorPickerPanel {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: clamp(30vw, 35vw, 420px);
+    }
+    #colorPickerPanel.open { display: flex; }
+    #colorPickerPopup {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        padding: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        background: rgba(10,16,26,0.6);
+        border: 1px solid rgba(124,170,197,0.25);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+    }
+    .color-swatch {
+        width: 36px; height: 36px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: transform 0.12s, border-color 0.12s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.active { border-color: #fff; }
+    #gameCanvas {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        z-index: 2000;
+        cursor: none;
+    }
+    #pauseOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 2001;
+        background: rgba(0,0,0,0.55);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.2rem;
+        color: #fff;
+    }
+    #pauseOverlay h3 { letter-spacing: 2px; }
+    #pauseOverlay .hint {
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.5);
+        margin-top: 0.5rem;
+    }
+    #crosshair::before, #crosshair::after {
+        content: '';
+        position: absolute;
+        border-radius: 1px;
+    }
+    #crosshair {
+        --ch: rgba(255,255,255,0.85);
+        display: none;
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2005;
+        pointer-events: none;
+        width: 18px; height: 18px;
+        align-items: center; justify-content: center;
+    }
+    #crosshair.aimed-pickup { --ch: rgba(0, 220, 190, 0.95); }
+    #crosshair.aimed-enemy  { --ch: rgba(255, 60,  60, 0.95); }
+    #crosshair::before { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); background: var(--ch); }
+    #crosshair::after  { width: 2px; height: 100%; left: 50%; top: 0; transform: translateX(-50%); background: var(--ch); }
+    #crosshair-ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: conic-gradient(var(--ch) var(--charge, 0%), transparent 0);
+        -webkit-mask: radial-gradient(closest-side, transparent 75%, black 80%);
+        mask: radial-gradient(closest-side, transparent 75%, black 80%);
+        display: none;
+        opacity: 0.5;
+    }
+    #inventoryUI {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2000;
+        background: rgba(0, 0, 0, 0.55);
+        padding: 10px;
+        border-radius: 12px;
+        gap: 8px;
+    }
+    .inventory-slot {
+        width: 45px;
+        height: 45px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        transition: all 0.2s ease;
+    }
+    .inventory-slot.selected {
+        border-color: rgba(0, 220, 190, 0.95);
+        box-shadow: 0 0 8px rgba(0, 220, 190, 0.5);
+    }
+</style>
+
+
+<!-- CA filter（色差，套用於影片和等待介面）-->
+<svg style="position:absolute;width:0;height:0;overflow:hidden">
+    <defs>
+        <filter id="ca-filter" x="-2%" y="-2%" width="104%" height="104%" color-interpolation-filters="sRGB">
+            <feOffset in="SourceGraphic" dx="1"  dy="0.5"  result="rShift"/>
+            <feOffset in="SourceGraphic" dx="-1" dy="-0.5" result="bShift"/>
+            <feColorMatrix in="rShift"        type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="R"/>
+            <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="G"/>
+            <feColorMatrix in="bShift"        type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="B"/>
+            <feBlend in="R" in2="G" mode="screen" result="RG"/>
+            <feBlend in="RG" in2="B" mode="screen"/>
+        </filter>
+    </defs>
+</svg>
+
+<!-- 配對成功 Ready 畫面 -->
+<div id="clickToEnter" style="display:none; position:fixed; inset:0; z-index:2500; flex-direction:column; align-items:center; justify-content:center; gap:1.8rem;">
+    <video autoplay loop muted playsinline
+           style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(0.35); z-index:0;"></video>
+    <div style="position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:1.4rem; text-align:center;">
+        <p style="font-family:'Exo 2',sans-serif; color:rgba(208,232,245,0.6); letter-spacing:0.35em; font-size:0.8rem; font-weight:300;">匹配成功</p>
+        <!-- 對手資訊 -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+            <img id="matchAvatar" src="" alt=""
+                 style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:2px solid rgba(124,170,197,0.5);"
+                 onerror="this.src='/static/images/avatars/avatar_default.png'">
+            <span id="matchName" style="color:#fff; font-family:'Exo 2',sans-serif; font-size:1.1rem; letter-spacing:0.08em;"></span>
+        </div>
+        <!-- 準備狀態 -->
+        <div style="display:flex; gap:2.5rem; align-items:center;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                <div style="font-size:0.68rem; color:rgba(208,232,245,0.45); font-family:'Exo 2',sans-serif; letter-spacing:0.1em;">我</div>
+                <div id="myReadyDot"  style="width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.3s;"></div>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                <div style="font-size:0.68rem; color:rgba(208,232,245,0.45); font-family:'Exo 2',sans-serif; letter-spacing:0.1em;">對方</div>
+                <div id="oppReadyDot" style="width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.3s;"></div>
+            </div>
+        </div>
+        <button id="readyBtn" class="arena-btn primary" style="width:min(220px,60vw); font-family:'Exo 2',sans-serif; letter-spacing:0.15em;">
+            準備開始
+        </button>
+    </div>
+</div>
+
+<div id="startScreen">
+    <video id="startBgVideo" src="/media/videos/lake.mkv" autoplay loop muted playsinline></video>
+
+    <!-- 配對等待 overlay -->
+    <div id="waitingOverlay" style="display:none; position:absolute; inset:0; z-index:3; flex-direction:column; align-items:center; justify-content:center; gap:1.5rem; filter:url(#ca-filter);">
+        <div class="wait-spinner"></div>
+        <p class="wait-label">尋找對手中</p>
+        <button class="arena-btn" id="cancelQueue" style="width:min(180px,40vw);">
+            <span class="btn-icon"><i class="bi bi-x-circle"></i></span>取消
+        </button>
+    </div>
+
+    <div id="arenaLayout">
+        <!-- 上方：標題置中 -->
+        <div id="arenaTitle">
+            <div class="title-small-stack">
+                <span class="t-small">welcome</span>
+                <span class="t-small">to the</span>
+            </div>
+            <div class="t-arena">ARENA</div>
+        </div>
+
+        <!-- 下方：左 1/3 人物 + 右 2/3 按鈕 -->
+        <div id="arenaBottom">
+            <div id="arenaChar">
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <canvas id="previewCanvas" width="130" height="230"></canvas>
+                    <button id="colorPickerBtn"><i class="bi bi-palette"></i> 更換顏色</button>
+                </div>
+            </div>
+            <div id="arenaRight">
+                <!-- 按鈕列 -->
+                <div id="btnPanel">
+                    <button class="arena-btn primary" id="btnQuickMatch">
+                        <span class="btn-icon"><i class="bi bi-lightning-fill"></i></span>快速配對
+                    </button>
+                    <button class="arena-btn" id="btnCreateRoom">
+                        <span class="btn-icon"><i class="bi bi-plus-circle"></i></span>建立房間
+                    </button>
+                    <button class="arena-btn" id="btnJoinRoom">
+                        <span class="btn-icon"><i class="bi bi-door-open"></i></span>加入房間
+                    </button>
+                    <button class="arena-btn" id="startBtn">
+                        <span class="btn-icon"><i class="bi bi-person"></i></span>單人練習
+                    </button>
+                </div>
+                <!-- 建立房間面板 -->
+                <div id="createRoomPanel">
+                    <input class="arena-input" id="roomNameInput" type="text" placeholder="房間名稱">
+                    <input class="arena-input" id="roomPassInput" type="password" placeholder="密碼（選填）">
+                    <button class="arena-btn primary" id="confirmCreateRoom">
+                        <span class="btn-icon"><i class="bi bi-check-circle"></i></span>建立
+                    </button>
+                    <button class="arena-btn" id="backFromCreate">
+                        <span class="btn-icon"><i class="bi bi-arrow-left"></i></span>返回
+                    </button>
+                </div>
+                <!-- 顏色選取面板（取代按鈕列）-->
+                <div id="colorPickerPanel">
+                    <div id="colorPickerPopup"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+<div id="crosshair">
+    <div id="crosshair-ring"></div>
+</div>
+<div id="hpDisplay" style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%); z-index:2000; opacity:0.7; flex-direction:column; align-items:center; gap:4px;">
+    <div id="hpTrack" style="position:relative; height:8px; background:rgba(255,255,255,0.12); border-radius:4px; overflow:hidden;">
+        <div id="hpFill" style="position:absolute; inset:0; background:#fff; transform-origin:center; transform:scaleX(1); transition:transform 0.25s ease, background 0.25s ease;"></div>
+    </div>
+    <span id="hpText" style="font-size:0.68rem; color:rgba(208,232,245,0.6); font-family:'Exo 2',sans-serif; letter-spacing:0.08em;"></span>
+</div>
+<div id="inventoryUI"></div>
+
+<div id="pauseOverlay">
+    <h3 class="fw-bold">暫停</h3>
+    <button id="resumeBtn" class="btn btn-lg fw-bold text-white px-5" style="background-color:#7caac5">繼續格鬥</button>
+    <button id="exitBtn"   class="btn btn-outline-light fw-bold px-5">離開格鬥場</button>
+    <p class="hint">滑鼠移至頂部可喚出選單</p>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three'
+import { GLTFLoader }        from 'three/addons/loaders/GLTFLoader.js'
+import { EffectComposer }    from 'three/addons/postprocessing/EffectComposer.js'
+import { RenderPass }        from 'three/addons/postprocessing/RenderPass.js'
+import { SSAOPass }          from 'three/addons/postprocessing/SSAOPass.js'
+import { UnrealBloomPass }   from 'three/addons/postprocessing/UnrealBloomPass.js'
+import { OutputPass }        from 'three/addons/postprocessing/OutputPass.js'
+import { ShaderPass }        from 'three/addons/postprocessing/ShaderPass.js'
+
+const canvas     = document.getElementById('gameCanvas')
+const startScr   = document.getElementById('startScreen')
+
+// ── 開始頁人物預覽 + 顏色選擇 ──────────────────────────
+window.playerBodyColor = localStorage.getItem('arenaBodyColor') || '#47A5E7'
+
+const PALETTE = [
+    '#47A5E7','#1a6fd4','#3ab8c4',
+    '#e74747','#e77447','#e7c447',
+    '#47e768','#47e7e7','#a047e7',
+    '#e747a0','#f0f0f0','#555555',
+]
+
+function drawPreview(bodyColor) {
+    const pc = document.getElementById('previewCanvas')
+    if (!pc) return
+    const ctx = pc.getContext('2d')
+    const W = pc.width, H = pc.height
+    const skin = '#E7CEB6'
+    const dark = (c) => { // 計算略暗版本
+        const r = parseInt(c.slice(1,3),16), g = parseInt(c.slice(3,5),16), b = parseInt(c.slice(5,7),16)
+        return `rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`
+    }
+    ctx.clearRect(0,0,W,H)
+    const cx = W/2
+    // 腿
+    ctx.fillStyle = skin; ctx.fillRect(cx-22,155,18,55); ctx.fillRect(cx+4,155,18,55)
+    // 身體
+    ctx.fillStyle = bodyColor; ctx.fillRect(cx-28,85,56,75)
+    // 手臂
+    ctx.fillRect(cx-46,88,16,55); ctx.fillRect(cx+30,88,16,55)
+    // 陰影
+    ctx.fillStyle = dark(bodyColor)
+    ctx.fillRect(cx-28,85,56,4); ctx.fillRect(cx-46,88,16,4); ctx.fillRect(cx+30,88,16,4)
+    // 頭
+    ctx.fillStyle = skin; ctx.fillRect(cx-20,45,40,38)
+}
+drawPreview(window.playerBodyColor)
+
+// 建立色板
+const popup = document.getElementById('colorPickerPopup')
+PALETTE.forEach(c => {
+    const sw = document.createElement('div')
+    sw.className = 'color-swatch' + (c === window.playerBodyColor ? ' active' : '')
+    sw.style.background = c
+    sw.addEventListener('click', () => {
+        window.playerBodyColor = c
+        localStorage.setItem('arenaBodyColor', c)
+        drawPreview(c)
+        popup.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'))
+        sw.classList.add('active')
+        if (colorPanel.style.display !== 'none') closeColorPicker()
+    })
+    popup.appendChild(sw)
+})
+
+const colorBtn        = document.getElementById('colorPickerBtn')
+const btnPanel        = document.getElementById('btnPanel')
+const colorPanel      = document.getElementById('colorPickerPanel')
+const createRoomPanel = document.getElementById('createRoomPanel')
+
+// ── 通用轉場：物件散出兩側，新面板從兩側飛入 ──────────
+function scatterOut(items, cb) {
+    items.forEach((el, i) => {
+        const dir = i % 2 === 0 ? '-140vw' : '140vw'
+        el.style.transition = `transform 0.22s ease-in ${i*0.04}s, opacity 0.18s ease-in ${i*0.04}s`
+        el.style.transform  = `translateX(${dir})`
+        el.style.opacity    = '0'
+    })
+    setTimeout(() => {
+        items.forEach(el => { el.style.transition = ''; el.style.transform = ''; el.style.opacity = '' })
+        cb()
+    }, items.length * 40 + 260)
+}
+function flyIn(items) {
+    items.forEach((el, i) => {
+        el.style.transition = 'none'
+        el.style.transform  = i % 2 === 0 ? 'translateX(-140vw)' : 'translateX(140vw)'
+        el.style.opacity    = '0'
+    })
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        items.forEach((el, i) => {
+            el.style.transition = `transform 0.28s ease-out ${i*0.05}s, opacity 0.22s ease-out ${i*0.05}s`
+            el.style.transform  = 'translateX(0)'
+            el.style.opacity    = '1'
+        })
+    }))
+}
+function switchPanel(exitPanel, enterPanel, enterDisplay = 'flex') {
+    scatterOut(Array.from(exitPanel.children), () => {
+        exitPanel.style.display = 'none'
+        enterPanel.style.display = enterDisplay
+        flyIn(Array.from(enterPanel.children))
+    })
+}
+
+// 顏色選取
+function openColorPicker() {
+    colorBtn.innerHTML = '<i class="bi bi-x-lg"></i> 取消選取'
+    switchPanel(btnPanel, colorPanel)
+}
+function closeColorPicker() {
+    colorBtn.innerHTML = '<i class="bi bi-palette"></i> 更換顏色'
+    switchPanel(colorPanel, btnPanel)
+}
+colorBtn.addEventListener('click', () => {
+    colorPanel.style.display !== 'none' ? closeColorPicker() : openColorPicker()
+})
+
+// 建立房間
+document.getElementById('btnCreateRoom').addEventListener('click', () => {
+    switchPanel(btnPanel, createRoomPanel)
+})
+document.getElementById('backFromCreate').addEventListener('click', () => {
+    switchPanel(createRoomPanel, btnPanel)
+})
+
+// ── 開始頁：整體視差 + 手持抖動 ────────────────────────
+;(function initHUD() {
+    const scr    = document.getElementById('startScreen')
+    const layout = document.getElementById('arenaLayout')
+    if (!scr || !layout) return
+
+    let tMouseX = 0, tMouseY = 0
+    let cMouseX = 0, cMouseY = 0
+    const PARALLAX = 14, EASE = 0.055
+
+    scr.addEventListener('mousemove', e => {
+        const r  = scr.getBoundingClientRect()
+        const dx = (e.clientX - r.left - r.width  / 2) / (r.width  / 2)
+        const dy = (e.clientY - r.top  - r.height / 2) / (r.height / 2)
+        tMouseX = -dx * PARALLAX
+        tMouseY = -dy * PARALLAX * 0.65
+    })
+    scr.addEventListener('mouseleave', () => { tMouseX = 0; tMouseY = 0 })
+
+    // 多頻正弦疊加 → 手持鏡頭感
+    function shake(t, seed) {
+        return Math.sin(t * 0.43 + seed)       * 0.45
+             + Math.sin(t * 1.17 + seed * 1.3) * 0.28
+             + Math.sin(t * 2.63 + seed * 0.7) * 0.15
+             + Math.sin(t * 4.91 + seed * 2.1) * 0.07
+    }
+
+    let t0 = null
+    function tick(ts) {
+        if (scr.style.display === 'none') return
+        if (!t0) t0 = ts
+        const t = (ts - t0) / 1000
+
+        cMouseX += (tMouseX - cMouseX) * EASE
+        cMouseY += (tMouseY - cMouseY) * EASE
+
+        const sx = shake(t, 0)   * 2.8   // X 抖動幅度
+        const sy = shake(t, 5.3) * 1.8   // Y 抖動幅度
+        const sr = shake(t, 2.7) * 0.18  // 旋轉 (度)
+
+        layout.style.transform =
+            `translate(${(cMouseX + sx).toFixed(2)}px, ${(cMouseY + sy).toFixed(2)}px)` +
+            ` rotate(${sr.toFixed(3)}deg)`
+
+        requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+})()
+const crosshair  = document.getElementById('crosshair')
+const navbar     = document.querySelector('.navbar')
+const inventoryUI= document.getElementById('inventoryUI')
+const crosshairRing = document.getElementById('crosshair-ring')
+
+// ── Scene ────────────────────────────────────────────────
+const scene    = new THREE.Scene()
+scene.background = new THREE.Color(0x87ceeb)
+scene.fog = new THREE.Fog(0x87ceeb, 30, 80)
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
+renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.shadowMap.enabled   = true
+renderer.toneMapping         = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.0
+renderer.outputColorSpace    = THREE.SRGBColorSpace
+
+// ── Post-processing ──────────────────────────────────────
+// 必須用實際 drawing buffer 尺寸（= innerSize × pixelRatio），否則 framebuffer attachment 大小不一致
+const _initDbs = renderer.getDrawingBufferSize(new THREE.Vector2())
+const renderTarget = new THREE.WebGLRenderTarget(
+    _initDbs.x, _initDbs.y,
+    { samples: 4 }
+)
+
+// 深度 pre-pass target（非 MSAA，用於體積霧重建世界座標）
+const depthTarget = new THREE.WebGLRenderTarget(_initDbs.x, _initDbs.y, {
+    depthTexture: new THREE.DepthTexture(_initDbs.x, _initDbs.y),
+    minFilter: THREE.NearestFilter,
+    magFilter: THREE.NearestFilter,
+})
+
+const composer = new EffectComposer(renderer, renderTarget)
+composer.addPass(new RenderPass(scene, camera))
+
+// ── 體積大氣霧 Pass ──────────────────────────────────────
+const volFogPass = new ShaderPass({
+    uniforms: {
+        tDiffuse:       { value: null },
+        tDepth:         { value: depthTarget.depthTexture },
+        uCamPos:        { value: new THREE.Vector3() },
+        uProjInv:       { value: new THREE.Matrix4() },
+        uViewInv:       { value: new THREE.Matrix4() },
+        uSunDir:        { value: new THREE.Vector3(0, 1, 0) },
+        uFogColor:      { value: new THREE.Color(0xF8df75) },
+        uDensity:       { value: 0.005 },
+        uHeightFalloff: { value: 0.10 },
+        uFogBottom:     { value: -2.0 },
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = vec4(position, 1.0); }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDepth;
+        uniform vec3  uCamPos;
+        uniform mat4  uProjInv;
+        uniform mat4  uViewInv;
+        uniform vec3  uSunDir;
+        uniform vec3  uFogColor;
+        uniform float uDensity;
+        uniform float uHeightFalloff;
+        uniform float uFogBottom;
+        varying vec2 vUv;
+
+        void main() {
+            vec4 col   = texture2D(tDiffuse, vUv);
+            float depth = texture2D(tDepth, vUv).r;
+
+            // 從深度重建世界座標
+            vec4 ndc  = vec4(vUv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+            vec4 view = uProjInv * ndc;
+            view /= view.w;
+            vec3 world = (uViewInv * view).xyz;
+
+            float rayDist = depth > 0.9999 ? 180.0 : length(world - uCamPos);
+            vec3  rayDir  = normalize(world - uCamPos);
+
+            // 光線步進（24步）
+            float fog = 0.0;
+            float step = rayDist / 24.0;
+            for (int i = 0; i < 24; i++) {
+                vec3 p = uCamPos + rayDir * (float(i) + 0.5) * step;
+                float h = max(p.y - uFogBottom, 0.0);
+                fog += exp(-h * uHeightFalloff) * uDensity * step;
+            }
+            fog = 1.0 - exp(-fog);
+
+            // Mie 散射：迎光方向偏暖
+            float cosA  = dot(rayDir, -normalize(uSunDir));
+            float mie   = (1.0 + cosA * cosA) * 0.5;
+            vec3 fogCol = uFogColor * (0.5 + 0.5 * mie);
+
+            gl_FragColor = vec4(mix(col.rgb, fogCol, clamp(fog, 0.0, 0.8)), col.a);
+        }
+    `,
+})
+composer.addPass(volFogPass)
+
+const bloom = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    0.4,   // strength
+    0.4,   // radius
+    0.6    // threshold（降低讓水面發光觸發 bloom）
+)
+composer.addPass(bloom)
+const colorPass = new ShaderPass({
+    uniforms: {
+        tDiffuse:    { value: null },
+        uContrast:   { value: 0.95 },
+        uSaturation: { value: 0.9 },
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float uContrast;
+        uniform float uSaturation;
+        varying vec2 vUv;
+        void main() {
+            vec4 c = texture2D(tDiffuse, vUv);
+            float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+            c.rgb = mix(vec3(lum), c.rgb, uSaturation);
+            c.rgb = (c.rgb - 0.5) * uContrast + 0.5;
+            gl_FragColor = clamp(c, 0.0, 1.0);
+        }
+    `,
+})
+composer.addPass(colorPass)
+composer.addPass(new OutputPass())
+
+
+// ── 場景燈光（對應 Blender 設定）────────────────────────
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
+scene.add(new THREE.AmbientLight(0xAAFEFF, 0.3))
+const SUN_ELEV = 70 * Math.PI / 180
+const sun = new THREE.DirectionalLight(0xFFCCAD, 2.0)
+sun.position.set(
+    Math.cos(SUN_ELEV) * 0.707 * 100,
+    Math.sin(SUN_ELEV) * 100,
+    Math.cos(SUN_ELEV) * 0.707 * 100
+)
+sun.castShadow = true
+sun.shadow.mapSize.width  = 1024
+sun.shadow.mapSize.height = 1024
+sun.shadow.camera.near   = 0.5
+sun.shadow.camera.far    = 200
+sun.shadow.camera.left   = sun.shadow.camera.bottom = -75
+sun.shadow.camera.right  = sun.shadow.camera.top    =  75
+scene.add(sun)
+
+// ── Halftone 注入工廠 ────────────────────────────────────
+const halftoneShared = {
+    uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    uScale:      { value: 192.2 },
+    uThreshold:  { value: 0.65 },
+}
+
+function createToonMat(hexColor, saturation = 1.0, flatShading = true) {
+    const mat = new THREE.MeshStandardMaterial({
+        color:        hexColor,
+        roughness:    flatShading ? 1.0 : 0.5,
+        metalness:    0,
+        flatShading:  flatShading,
+    })
+    applyHalftone(mat, saturation)
+    return mat
+}
+
+function applyHalftone(mat, saturation = 1.0) {
+    mat.onBeforeCompile = (shader) => {
+        shader.uniforms.uResolution = halftoneShared.uResolution
+        shader.uniforms.uScale      = halftoneShared.uScale
+        shader.uniforms.uThreshold  = halftoneShared.uThreshold
+        shader.uniforms.uSaturation = { value: saturation }
+
+        shader.fragmentShader =
+            'uniform vec2  uResolution;\nuniform float uScale;\nuniform float uThreshold;\nuniform float uSaturation;\n'
+            + shader.fragmentShader
+
+        shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <dithering_fragment>',
+            `#include <dithering_fragment>
+            float _baseLum   = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+            float _diffLum   = dot(reflectedLight.directDiffuse, vec3(0.299, 0.587, 0.114));
+            float _lightness = _baseLum > 0.001 ? _diffLum / _baseLum : 0.0;
+            vec2  _cell    = fract(gl_FragCoord.xy / uResolution * uScale) - 0.5;
+            float _mapped  = 1.0 - length(_cell);
+            float _dotMask = step(uThreshold, _mapped);
+            float _shadow  = 1.0 - smoothstep(0.05, 0.4, _lightness);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * 0.837, _dotMask * _shadow);
+            float _lum2 = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
+            gl_FragColor.rgb = mix(vec3(_lum2), gl_FragColor.rgb, uSaturation);`
+        )
+    }
+}
+
+// ── Ground ───────────────────────────────────────────────
+const ground = new THREE.Mesh(
+    new THREE.BoxGeometry(60, 1, 60),
+    createToonMat(0x9CEC57, 0.9)
+)
+ground.position.y = -1 / 2
+ground.receiveShadow = true
+ground.castShadow = true
+scene.add(ground)
+
+// ── Water ────────────────────────────────────────────────
+// MeshBasicMaterial 仍受 ACESFilmic tone mapping 影響
+// 需用 convertSRGBToLinear 在 linear 空間混色，再讓 tone mapping 壓縮
+const _emitCol = new THREE.Color(0xA5FF99).convertSRGBToLinear()
+const _transCol = new THREE.Color(0xAFE6D6).convertSRGBToLinear()
+const waterColor = _emitCol.clone().lerp(_transCol, 0.833).multiplyScalar(0.75)
+const waterMat = new THREE.MeshBasicMaterial({
+    color:       waterColor,
+    transparent: true,
+    opacity:     0.6,
+    depthWrite:  false,
+    side:        THREE.FrontSide,
+})
+const water = new THREE.Mesh(
+    new THREE.CylinderGeometry(70, 70, 1, 12),
+    waterMat
+)
+water.position.y = -1.0
+water.renderOrder = 1
+scene.add(water)
+
+// ── Lake Ripple ───────────────────────────────────────────
+const rippleMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uRippleScale: { value: 5.0 } },
+    transparent: true,
+    depthWrite:  false,
+    side:        THREE.FrontSide,
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform float uTime;
+        uniform float uRippleScale;
+        varying vec2  vUv;
+
+        // ── 基礎 hash / noise ──
+        float hash(vec3 p) {
+            p = fract(p * 0.3183099 + 0.1);
+            p *= 17.0;
+            return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+        }
+        float noise3(vec3 x) {
+            vec3 i = floor(x), f = fract(x);
+            f = f*f*(3.0-2.0*f);
+            return mix(mix(mix(hash(i),           hash(i+vec3(1,0,0)),f.x),
+                           mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+                       mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
+                           mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
+        }
+
+        // FBM：scale=3, detail=2, roughness=clamp(4.55,0,2), lacunarity=1.7, distortion=3.5
+        float fbm(vec3 p) {
+            p *= 3.0;
+            float v = 0.0, a = 0.5;
+            for (int i = 0; i < 2; i++) {
+                v += a * noise3(p);
+                p *= 1.7;
+                a *= min(4.55, 1.0); // roughness > 1 在 GLSL 中用 1.0 避免爆炸
+            }
+            return v;
+        }
+
+        // 域扭曲 noise（distortion=3.5）
+        float warpedNoise(vec3 p) {
+            float dx = fbm(p + vec3(0.0, 0.0, 0.1));
+            float dy = fbm(p + vec3(5.2, 1.3, 0.2));
+            float dz = fbm(p + vec3(1.7, 9.2, 0.3));
+            return fbm(p + 3.5 * vec3(dx, dy, dz));
+        }
+
+        // 3D random
+        vec3 rand3(vec3 p) {
+            p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+            p += dot(p, p.yxz + 33.33);
+            return fract((p.xxy + p.yxx) * p.zyx);
+        }
+
+        // Voronoi F1：scale=5, detail=0, randomness=1
+        float voronoiF1(vec3 p) {
+            vec3 i = floor(p), f = fract(p);
+            float md = 1e9;
+            for (int x=-1;x<=1;x++)
+            for (int y=-1;y<=1;y++)
+            for (int z=-1;z<=1;z++) {
+                vec3 nb = vec3(float(x),float(y),float(z));
+                vec3 pt = nb + rand3(i+nb) - f;
+                md = min(md, dot(pt,pt));
+            }
+            return sqrt(md);
+        }
+
+        // Polynomial smooth min（Blender 的實作）
+        float smin(float a, float b, float k) {
+            float h = max(k - abs(a - b), 0.0) / k;
+            return min(a, b) - h * h * k * 0.25;
+        }
+
+        // Voronoi 平滑F1：scale=5, detail=0, randomness=1, smoothness=1
+        float voronoiSmoothF1(vec3 p) {
+            vec3 i = floor(p), f = fract(p);
+            float md = 1e9;
+            for (int x=-1;x<=1;x++)
+            for (int y=-1;y<=1;y++)
+            for (int z=-1;z<=1;z++) {
+                vec3 nb = vec3(float(x),float(y),float(z));
+                vec3 pt = nb + rand3(i+nb) - f;
+                float d = length(pt);
+                md = smin(md, d, 1.0); // smoothness=1
+            }
+            return md;
+        }
+
+        void main() {
+            vec2 uv = vUv - 0.5;
+
+            // Z = 時間 + 噪點扭曲
+            float distortedZ = uTime * 0.4 + warpedNoise(vec3(uv, 0.0)) * 1.2;
+
+            // scale=5，兩個 Voronoi 用相同座標
+            vec3 vc = vec3(uv * uRippleScale, distortedZ);
+
+            float f1  = voronoiF1(vc);
+            float sf1 = voronoiSmoothF1(vc);
+
+            // 相減
+            float diff = f1 - sf1;
+
+            // 顏色漸變 常值：黑色 0.0 白色 0.16（硬切，反轉）
+            float ring = 1.0 - step(0.16, diff);
+
+            float edgeFade = 1.0 - smoothstep(0.35, 0.5, length(uv));
+            float alpha = ring * edgeFade * 0.85;
+            vec3  color = vec3(1.0, 0.72, 0.28) * 3.0 * ring;
+
+            gl_FragColor = vec4(color, alpha);
+        }
+    `,
+})
+const ripple = new THREE.Mesh(
+    new THREE.CylinderGeometry(75, 75, 0.01, 12),
+    rippleMat
+)
+ripple.position.y = -0.48
+ripple.renderOrder = 2
+scene.add(ripple)
+
+// ── 方塊雲層 ───────────────────────────────────────────
+const cloudMat = new THREE.MeshBasicMaterial({ color: 0xD0D0D0, transparent: true, opacity: 0.82 })
+
+const CLOUD_HEIGHTS = [26, 28, 35]   // 三個高度選項
+const CLOUD_COUNT   = 24              // 總雲數
+const cloudObjects  = []
+
+function makeCloud(x, z) {
+    const y     = CLOUD_HEIGHTS[Math.floor(Math.random() * CLOUD_HEIGHTS.length)]
+    const scale = y === 26 ? 1.4 : y === 28 ? 1.0 : 0.7
+    const speed = y === 26 ? 1.2 : y === 28 ? 2.0 : 2.8
+
+    const g      = new THREE.Group()
+    const blocks = Math.floor(Math.random() * 5) + 4
+    for (let i = 0; i < blocks; i++) {
+        const w = (Math.floor(Math.random() * 3) + 2) * 2 * scale
+        const d = (Math.floor(Math.random() * 3) + 2) * 2 * scale
+        const h = (Math.floor(Math.random() * 2) + 1) * 1.5 * scale
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cloudMat)
+        m.position.set(
+            (Math.random() - 0.5) * 10 * scale,
+            Math.floor(Math.random() * 2) * 1.5 * scale,
+            (Math.random() - 0.5) * 10 * scale
+        )
+        g.add(m)
+    }
+    g.position.set(x, y, z)
+    return { mesh: g, speed }
+}
+
+for (let i = 0; i < CLOUD_COUNT; i++) {
+    const c = makeCloud(
+        (Math.random() - 0.5) * 160,
+        (Math.random() - 0.5) * 160
+    )
+    c.speed += (Math.random() - 0.5) * 0.4
+    scene.add(c.mesh)
+    cloudObjects.push(c)
+}
+
+// ── Water Bottom ────────────────────────────────────────────────
+const BottomMat = new THREE.MeshStandardMaterial({
+    color:    0xE7B97B,
+    roughness: 1.0,
+    metalness: 0,
+})
+applyHalftone(BottomMat, 1.0)
+const Bottom = new THREE.Mesh(
+    new THREE.CylinderGeometry(70, 70, 1, 12),
+    BottomMat
+)
+Bottom.position.y = -2.1
+Bottom.receiveShadow = true
+scene.add(Bottom)
+
+// ── Player (幾何人形) ─────────────────────────────────────
+const playerGroup = new THREE.Group()
+
+const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 1.2, 0.4),
+    createToonMat(0x47A5E7, 0.7)
+)
+body.position.y = 0.6
+body.castShadow = true
+
+// ── 切割頭部：製作可張開的嘴巴 (鉸鏈在後方) ──
+const headGroup = new THREE.Group()
+headGroup.position.y = 1.5
+const headMat = createToonMat(0xE7CEB6, 0.7)
+
+// 建立兩個樞紐點，放在頭部後方
+const upperHeadPivot = new THREE.Group()
+upperHeadPivot.position.z = 0.55 / 2 // 將樞紐點移到後腦勺
+
+const lowerJawPivot = new THREE.Group()
+lowerJawPivot.position.z = 0.55 / 2 // 將樞紐點移到後腦勺
+
+// 建立上半頭部，並將其中心點往前移，對齊樞紐
+const upperHead = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.275, 0.55), headMat)
+upperHead.position.set(0, 0.275 / 2, -0.55 / 2)
+upperHead.castShadow = true
+
+// 建立下顎，並將其中心點往前移，對齊樞紐
+const lowerJaw = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.275, 0.55), headMat)
+lowerJaw.position.set(0, -0.275 / 2, -0.55 / 2)
+lowerJaw.castShadow = true
+
+upperHeadPivot.add(upperHead)
+lowerJawPivot.add(lowerJaw)
+headGroup.add(upperHeadPivot, lowerJawPivot)
+
+// ── 四肢 ──────────────────────────────────────────────────
+const limbBodyMat = createToonMat(0x47A5E7)
+const limbSkinMat = createToonMat(0xE7CEB6)
+
+function makeLimb(w, h, d, mat, px, py, pz) {
+    const g = new THREE.Group()
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
+    m.castShadow = true
+    m.position.set(0, -h / 2, 0) // 從肩/髖往下懸掛
+    g.add(m)
+    g.position.set(px, py, pz)
+    return g
+}
+
+const rightArmGroup = makeLimb(0.22, 1, 0.22, limbBodyMat,  0.51,  1.1, 0)
+const leftArmGroup  = makeLimb(0.22, 1, 0.22, limbBodyMat, -0.51,  1.1, 0)
+const rightLegGroup = makeLimb(0.24, 0.85, 0.24, limbSkinMat,  0.22, -0.05, 0)
+const leftLegGroup  = makeLimb(0.24, 0.85, 0.24, limbSkinMat, -0.22, -0.05, 0)
+
+playerGroup.add(body, headGroup, rightArmGroup, leftArmGroup, rightLegGroup, leftLegGroup)
+playerGroup.position.y = 0.9
+scene.add(playerGroup)
+
+const playerFlashMats = [body.material, limbBodyMat, limbSkinMat, headMat]
+let playerFlashTimer = 0
+
+// 統一肢體插槽（group=null 表示空位）
+const LIMB_SLOTS = [
+    { pos:[  0.51,  1.1, 0], group: rightArmGroup, type:'limb_arm', w:0.22, h:1,    d:0.22, mat:limbBodyMat, swing:-1 },
+    { pos:[ -0.51,  1.1, 0], group: leftArmGroup,  type:'limb_arm', w:0.22, h:1,    d:0.22, mat:limbBodyMat, swing: 1 },
+    { pos:[  0.22, -0.05,0], group: rightLegGroup,  type:'limb_leg', w:0.24, h:0.85, d:0.24, mat:limbSkinMat, swing: 1 },
+    { pos:[ -0.22, -0.05,0], group: leftLegGroup,   type:'limb_leg', w:0.24, h:0.85, d:0.24, mat:limbSkinMat, swing:-1 },
+]
+
+// 為每個群組存原始 slot 資訊（X 鍵拆卸時讀取）
+LIMB_SLOTS.forEach(s => {
+    s.group.userData._type = s.type
+    s.group.userData._w = s.w; s.group.userData._h = s.h; s.group.userData._d = s.d
+    s.group.userData._mat = s.mat
+})
+
+// 原始肢體引用，用於每局重置
+const _origLimbs = [rightArmGroup, leftArmGroup, rightLegGroup, leftLegGroup]
+
+function resetPlayerLimbs() {
+    LIMB_SLOTS.forEach((s, i) => {
+        if (s.group) playerGroup.remove(s.group)
+        const g = _origLimbs[i]
+        g.position.set(...s.pos)
+        g.rotation.set(0, 0, 0)
+        playerGroup.add(g)
+        s.group = g
+    })
+    inventory.length = 0
+    selectedSlotIndex = 0
+    updateInventoryUI()
+}
+
+// 任意 item → 肢體 mesh（用於右鍵裝義肢）
+function createItemMesh(item) {
+    if (item.type === 'limb_arm' || item.type === 'limb_leg')
+        return new THREE.Mesh(new THREE.BoxGeometry(item._w||0.22, item._h||0.7, item._d||0.22), item._mat||limbBodyMat)
+    if (item.type === 'branch')
+        return new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.6,8), branchMat)
+    if (item.type === 'tree') {
+        const g = new THREE.Group()
+        const lv = new THREE.Mesh(new THREE.ConeGeometry(0.8,1.5,8), leavesMat)
+        lv.position.y = 0.5   // 葉子近肩膀
+        const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.25,1,8), trunkMat)
+        tr.position.y = -0.5  // 樹幹往下掛
+        g.add(lv, tr); return g
+    }
+    return new THREE.Mesh(new THREE.DodecahedronGeometry(0.25), rockMat)
+}
+
+// ── 場地樹木 ─────────────────────────────────────────────
+const trunkMat  = createToonMat(0x8c4033, 1.0, true)
+const leavesMat = createToonMat(0x2eAF77, 1.0, true)
+
+const pickables = []   // 可撿取物件（近距離才青色）
+const enemies   = []   // 敵人（任何距離都紅色）
+
+// ── 受擊特效 ──────────────────────────────────────────────
+const FLASH_DUR = 0.25
+const hitParticles = []
+const hitParticleMat    = new THREE.MeshBasicMaterial({ color: 0xFF2222 })
+const pickupParticleMat = new THREE.MeshBasicMaterial({ color: 0x00FFCC })
+const chargeOrangeMat   = new THREE.MeshBasicMaterial({ color: 0xFFEE00 })
+const _hitParticleGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12)
+
+function spawnHitParticles(pos, mat = hitParticleMat) {
+    for (let i = 0; i < 12; i++) {
+        const mesh = new THREE.Mesh(_hitParticleGeo, mat)
+        mesh.position.set(
+            pos.x + (Math.random() - 0.5) * 0.7,
+            pos.y + Math.random() * 0.4,
+            pos.z + (Math.random() - 0.5) * 0.7
+        )
+        const angle = Math.random() * Math.PI * 2
+        const spd   = 3 + Math.random() * 4
+        mesh.userData.vel  = new THREE.Vector3(
+            Math.cos(angle) * spd * (0.4 + Math.random() * 0.6),
+            2.5 + Math.random() * 5,
+            Math.sin(angle) * spd * (0.4 + Math.random() * 0.6)
+        )
+        const life = 0.4 + Math.random() * 0.2
+        mesh.userData.life    = life
+        mesh.userData.maxLife = life
+        scene.add(mesh)
+        hitParticles.push(mesh)
+    }
+}
+
+function spawnChargeParticles(pos) {
+    for (let i = 0; i < 2; i++) {
+        const mesh = new THREE.Mesh(_hitParticleGeo, chargeOrangeMat)
+        mesh.position.set(
+            pos.x + (Math.random() - 0.5) * 0.3,
+            pos.y + (Math.random() - 0.5) * 0.3,
+            pos.z + (Math.random() - 0.5) * 0.3
+        )
+        const angle = Math.random() * Math.PI * 2
+        const spd = 0.8 + Math.random() * 1.5
+        mesh.userData.vel = new THREE.Vector3(
+            Math.cos(angle) * spd * (0.4 + Math.random() * 0.6),
+            0.5 + Math.random() * 2,
+            Math.sin(angle) * spd * (0.4 + Math.random() * 0.6)
+        )
+        const life = 0.3 + Math.random() * 0.2
+        mesh.userData.life = life; mesh.userData.maxLife = life
+        scene.add(mesh); hitParticles.push(mesh)
+    }
+}
+
+function makeChargePreview(item) {
+    const inner = makeProjectileMesh(item)
+    const wrapper = new THREE.Group()
+    const center = new THREE.Box3().setFromObject(inner).getCenter(new THREE.Vector3())
+    inner.position.sub(center)   // 幾何中心對齊 wrapper 原點
+    wrapper.add(inner)
+    wrapper.scale.setScalar(0.35)
+    return wrapper
+}
+
+function applyHitFlash(mats) {
+    mats.forEach(m => { m.emissive.setHex(0xFF2222); m.emissiveIntensity = 1.5 })
+}
+
+const _bb3 = new THREE.Box3()
+function getObjCenter(obj) {
+    return _bb3.setFromObject(obj).getCenter(new THREE.Vector3())
+}
+function getMeshSize(mesh) {
+    const box = new THREE.Box3().setFromObject(mesh)
+    if (box.isEmpty()) return 1.0
+    const s = box.getSize(new THREE.Vector3()).length()
+    return s > 0 ? s : 1.0
+}
+
+// ── AI 假人 ──────────────────────────────────────────────
+function createBot(x, z) {
+    const botBodyMat = createToonMat(0xE74747)   // 紅色
+    const botSkinMat = createToonMat(0xE7CEB6)
+    const g = new THREE.Group()
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), botBodyMat)
+    body.position.y = 0.6; body.castShadow = true
+
+    const head = new THREE.Group(); head.position.y = 1.5
+    const upperHeadPivot = new THREE.Group()
+    upperHeadPivot.position.z = -0.55 / 2   // bot local +Z = 正面，所以後腦在 -Z
+    const lowerJawPivot = new THREE.Group()
+    lowerJawPivot.position.z = -0.55 / 2
+    const _uH = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.275, 0.55), botSkinMat)
+    _uH.position.set(0, 0.275 / 2, 0.55 / 2); _uH.castShadow = true   // mesh 從 pivot 往正面延伸
+    const _lJ = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.275, 0.55), botSkinMat)
+    _lJ.position.set(0, -0.275 / 2, 0.55 / 2); _lJ.castShadow = true
+    upperHeadPivot.add(_uH); lowerJawPivot.add(_lJ)
+    head.add(upperHeadPivot, lowerJawPivot)
+
+    const arms = [
+        makeLimb(0.22, 1, 0.22, botBodyMat,  0.51, 1.1, 0),
+        makeLimb(0.22, 1, 0.22, botBodyMat, -0.51, 1.1, 0),
+    ]
+    const legs = [
+        makeLimb(0.24, 0.85, 0.24, botSkinMat,  0.22, -0.05, 0),
+        makeLimb(0.24, 0.85, 0.24, botSkinMat, -0.22, -0.05, 0),
+    ]
+    g.add(body, head, ...arms, ...legs)
+    g.position.set(x, 0.9, z)
+    scene.add(g)
+    enemies.push(g)
+
+    // 頭頂 label
+    const label = document.createElement('div')
+    label.className = 'enemy-label'
+    label.innerHTML = `<span class="enemy-label-name">BOT</span>
+        <div class="enemy-hp-track"><div class="enemy-hp-fill"></div></div>`
+    document.body.appendChild(label)
+
+    return {
+        group: g, body, arms, legs,
+        label, labelFill: label.querySelector('.enemy-hp-fill'),
+        state: 'SEEK',
+        hp: 100,
+        walkCycle: 0,
+        hitTimer: 0,
+        hitDir: new THREE.Vector3(),
+        // 背包
+        inventory: [],
+        attackMode: false,   // true=打到空，false=先收集到5
+        throwCooldown: 0,
+        aimTimer: 0,
+        // 搜索
+        foundItem:    null,
+        seekRadius:   8,
+        scanAngle:    0,
+        scanProgress: 0,
+        scanTimer:    0,
+        // 遊蕩備用
+        wanderTarget: new THREE.Vector3(x, 0, z),
+        wanderTimer:  0,
+        // 受擊閃紅
+        flashTimer: 0,
+        flashMats:  [botBodyMat, botSkinMat],
+        // 蓄力投擲
+        upperHeadPivot, lowerJawPivot,
+        chargeTimer: 0, chargeDur: 0,
+        // 蓄力預覽模型
+        chargePreview: null, chargePtmr: 0,
+    }
+}
+
+const bots = []
+
+const BOT_MAX_INV   = 10
+const BOT_ATK_THRES = 5    // 背包 >= 5 才切換攻擊優先
+
+function botThrow(b, chargeLevel) {
+    if (b.inventory.length === 0) return
+    const item  = b.inventory.shift()
+    const power = Math.pow(chargeLevel, 0.6)   // 和玩家公式相同
+    const dir   = new THREE.Vector3()
+        .subVectors(playerGroup.position, b.group.position)
+        .normalize()
+    const spread = (Math.random() - 0.5) * (Math.PI / 9)
+    dir.applyAxisAngle(new THREE.Vector3(0,1,0), spread)
+    dir.y = 0.1 + Math.random() * 0.2
+    dir.normalize()
+
+    const mesh = makeProjectileMesh(item)
+    mesh.position.copy(b.group.position).add(new THREE.Vector3(0,1.5,0))
+    mesh.castShadow = true
+    scene.add(mesh)
+    const _bSize = getMeshSize(mesh)
+    dir.multiplyScalar(power / Math.sqrt(_bSize))
+    projectiles.push({ mesh, velocity: dir, fromBot: true, power, size: _bSize })
+    b.throwCooldown = 1.5 + Math.random()
+}
+
+// 掃描 bot 面前 120° 弧形半徑內是否有物件
+function botScanArc(b) {
+    const pos = b.group.position
+    const now = Date.now()
+    for (const obj of pickables) {
+        if (now - (obj.userData.landTime || 0) < 1000) continue  // 剛落地不算
+        const dx = obj.position.x - pos.x
+        const dz = obj.position.z - pos.z
+        const dist = Math.sqrt(dx*dx + dz*dz)
+        if (dist > b.seekRadius) continue
+        let diff = Math.atan2(dx, dz) - b.scanAngle
+        while (diff >  Math.PI) diff -= Math.PI*2
+        while (diff < -Math.PI) diff += Math.PI*2
+        if (Math.abs(diff) <= Math.PI/3) return obj   // 120° 弧內
+    }
+    return null
+}
+
+function worldToScreen(pos3D) {
+    const v = pos3D.clone().project(camera)
+    return {
+        x: (v.x + 1) / 2 * window.innerWidth,
+        y: -(v.y - 1) / 2 * window.innerHeight,
+        behind: v.z > 1,
+    }
+}
+
+function updateEnemyLabels() {
+    for (const b of bots) {
+        if (!b.label) continue
+        const headPos = b.group.position.clone().add(new THREE.Vector3(0, 2.8, 0))
+        const s = worldToScreen(headPos)
+        if (s.behind || !running) { b.label.style.display = 'none'; continue }
+        b.label.style.display = 'flex'
+        b.label.style.left = s.x + 'px'
+        b.label.style.top  = s.y + 'px'
+        const ratio = b.hp / 100
+        b.labelFill.style.transform  = `scaleX(${ratio})`
+        b.labelFill.style.background = ratio <= 0.3 ? '#EF5350' : '#fff'
+    }
+    // PvP 對手 label
+    if (opponent?.label) {
+        const s = worldToScreen(opponent.group.position.clone().add(new THREE.Vector3(0,2.8,0)))
+        if (s.behind) { opponent.label.style.display = 'none'; return }
+        opponent.label.style.display = 'flex'
+        opponent.label.style.left = s.x + 'px'
+        opponent.label.style.top  = s.y + 'px'
+    }
+}
+
+function updateBots(dt) {
+    for (const b of bots) {
+        const pos  = b.group.position
+        const dist = pos.distanceTo(playerGroup.position)
+        b.throwCooldown = Math.max(0, b.throwCooldown - dt)
+
+        // ── HIT：後退，不做其他判斷 ──
+        if (b.state === 'HIT') {
+            b.hitTimer -= dt
+            pos.addScaledVector(b.hitDir, 4 * dt)
+            if (b.hitTimer <= 0)
+                b.state = b.inventory.length >= BOT_ATK_THRES ? 'ATTACK' : 'SEEK'
+            pos.y = 0.9
+            continue
+        }
+
+        // ── 近距離撿取（不管什麼狀態都執行）──
+        const now = Date.now()
+        if (b.inventory.length < BOT_MAX_INV) {
+            for (let i = pickables.length - 1; i >= 0; i--) {
+                const age = now - (pickables[i].userData.landTime || 0)
+                if (age < 1000) continue   // 落地未滿 1 秒不撿
+                if (pos.distanceTo(pickables[i].position) < 2.5) {
+                    b.inventory.push({
+                        type: pickables[i].userData.type || 'rock',
+                        _w: pickables[i].userData._w,
+                        _h: pickables[i].userData._h,
+                        _d: pickables[i].userData._d,
+                        _mat: pickables[i].userData._mat,
+                    })
+                    spawnHitParticles(getObjCenter(pickables[i]), pickupParticleMat)
+                    scene.remove(pickables[i])
+                    pickables.splice(i, 1)
+                    break
+                }
+            }
+        }
+
+        // ── 攻擊模式旗標 ──
+        // 收集到 5 → 開啟攻擊模式（打到空才關閉）
+        if (!b.attackMode && b.inventory.length >= BOT_ATK_THRES)
+            b.attackMode = true
+        // 打空 → 關閉攻擊模式，重新收集
+        if (b.attackMode && b.inventory.length === 0) {
+            b.attackMode = false
+            b.state = 'SEEK'
+            b.seekRadius = 8; b.scanProgress = 0; b.scanAngle = 0
+        }
+
+        const canThrow = b.inventory.length > 0 && b.throwCooldown <= 0
+
+        if (b.attackMode && canThrow) {
+            b.state = 'ATTACK'
+        } else if (b.attackMode && !canThrow && b.state !== 'ATTACK') {
+            // 攻擊模式但冷卻中：維持當前狀態（不切回收集）
+        } else if (!b.attackMode && b.state !== 'FETCH') {
+            b.state = 'SEEK'
+        }
+
+        // ── 狀態邏輯 ──
+        let moveDir = new THREE.Vector3()
+
+        if (b.state === 'SEEK') {
+            // 逐步旋轉掃描 120° 弧
+            b.scanTimer -= dt
+            if (b.scanTimer <= 0) {
+                // 平滑轉向掃描角度
+                b.group.rotation.y = b.scanAngle
+                const found = botScanArc(b)
+                if (found) {
+                    b.foundItem = found
+                    b.state     = 'FETCH'
+                } else {
+                    b.scanAngle    += Math.PI / 6   // 每步轉 30°
+                    b.scanProgress += 30
+                    if (b.scanProgress >= 360) {
+                        b.scanProgress = 0
+                        b.seekRadius   = Math.min(b.seekRadius + 6, 24)
+                        if (b.seekRadius >= 24 && pickables.length === 0)
+                            b.state = 'WANDER'  // 場上無物才遊蕩
+                    }
+                    b.scanTimer = 0.25
+                }
+            }
+        } else if (b.state === 'FETCH') {
+            // 確認目標還存在
+            if (!pickables.includes(b.foundItem)) {
+                b.foundItem = null
+                b.seekRadius = 8; b.scanProgress = 0
+                b.state = 'SEEK'
+            } else {
+                moveDir.subVectors(b.foundItem.position, pos).setY(0)
+                if (moveDir.length() < 0.3) moveDir.set(0,0,0)
+                else moveDir.normalize()
+            }
+        } else if (b.state === 'ATTACK') {
+            if (dist > 12) {
+                moveDir.subVectors(playerGroup.position, pos).setY(0).normalize()
+            } else if (canThrow) {
+                b.group.rotation.y = Math.atan2(
+                    playerGroup.position.x - pos.x,
+                    playerGroup.position.z - pos.z)
+                // 首次進入射程：決定本次蓄力時長（0~1 秒）
+                if (b.chargeDur === 0) {
+                    b.chargeDur   = Math.random() * 1.0
+                    b.chargeTimer = 0
+                }
+                b.chargeTimer += dt
+                const cl = Math.min(b.chargeTimer / 1.0, 1.0)
+                const hr = cl * 0.4
+                b.upperHeadPivot.rotation.x += (-hr - b.upperHeadPivot.rotation.x) * 0.3
+                b.lowerJawPivot.rotation.x  += ( hr - b.lowerJawPivot.rotation.x)  * 0.3
+                if (b.chargeTimer >= b.chargeDur) {
+                    botThrow(b, cl)
+                    b.chargeTimer = 0
+                    b.chargeDur   = 0
+                }
+            }
+        } else if (b.state === 'WANDER') {
+            b.wanderTimer -= dt
+            if (b.wanderTimer <= 0) {
+                const a = Math.random() * Math.PI * 2
+                b.wanderTarget.set(
+                    pos.x + Math.sin(a)*8, 0, pos.z + Math.cos(a)*8)
+                b.wanderTarget.clampScalar(-28, 28)
+                b.wanderTimer = 2 + Math.random()*2
+            }
+            moveDir.subVectors(b.wanderTarget, pos).setY(0)
+            if (moveDir.length() < 0.3) moveDir.set(0,0,0)
+            else moveDir.normalize()
+        }
+
+        if (moveDir.length() > 0) {
+            const speed = b.state === 'ATTACK' ? 5 : 3
+            pos.addScaledVector(moveDir, speed * dt)
+            b.group.rotation.y = Math.atan2(moveDir.x, moveDir.z)
+        }
+        pos.y = 0.9
+
+        // ── 走路擺動 ──
+        const moving = moveDir.length() > 0
+        b.walkCycle = moving ? b.walkCycle + dt * 9 : b.walkCycle * 0.85
+        const sw = Math.sin(b.walkCycle) * 0.55
+        b.arms[0].rotation.x = -sw; b.arms[1].rotation.x =  sw
+        b.legs[0].rotation.x =  sw; b.legs[1].rotation.x = -sw
+
+        // 非蓄力時嘴巴自然閉合
+        if (b.chargeDur === 0) {
+            b.upperHeadPivot.rotation.x += (0 - b.upperHeadPivot.rotation.x) * 0.3
+            b.lowerJawPivot.rotation.x  += (0 - b.lowerJawPivot.rotation.x)  * 0.3
+        }
+
+        // 蓄力預覽模型
+        if (b.chargeDur > 0 && b.inventory.length > 0) {
+            if (!b.chargePreview) {
+                b.chargePreview = makeChargePreview(b.inventory[0])
+                scene.add(b.chargePreview)
+            }
+            const fx = Math.sin(b.group.rotation.y)
+            const fz = Math.cos(b.group.rotation.y)
+            b.chargePreview.position.set(
+                b.group.position.x + fx * 1.3,
+                b.group.position.y + 1.7,
+                b.group.position.z + fz * 0.9
+            )
+            b.chargePreview.rotation.x += dt * 2.5
+            b.chargePreview.rotation.y += dt * 3.5
+            b.chargePreview.rotation.z += dt * 1.5
+            b.chargePtmr += dt
+            if (b.chargePtmr >= 0.08) {
+                spawnChargeParticles(b.chargePreview.position)
+                b.chargePtmr = 0
+            }
+        } else if (b.chargePreview) {
+            scene.remove(b.chargePreview)
+            b.chargePreview = null
+            b.chargePtmr = 0
+        }
+    }
+}
+
+// 投擲物命中 Bot
+function checkBotHits() {
+    for (const b of bots) {
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const p = projectiles[i]
+            if (p.fromBot) continue   // bot 自己的投擲物不算傷害 bot
+            const bodyCenter = b.group.position.clone().add(new THREE.Vector3(0, 0.8, 0))
+            if (p.mesh.position.distanceTo(bodyCenter) < 1.2) {
+                b.hp -= Math.ceil(Math.sqrt(p.size || 1) * (p.power || 0.5) * 6.8)
+                b.flashTimer = FLASH_DUR
+                applyHitFlash(b.flashMats)
+                spawnHitParticles(bodyCenter)
+                b.state = 'HIT'
+                b.hitTimer = 0.4
+                b.hitDir.subVectors(b.group.position, playerGroup.position).setY(0).normalize()
+                if (b.hp <= 0) {
+                    // 重置
+                    b.hp = 100
+                    const a = Math.random() * Math.PI * 2
+                    b.group.position.set(Math.sin(a)*20, 0.9, Math.cos(a)*20)
+                }
+                // 投擲物落地
+                p.mesh.position.y = 0.2
+                p.mesh.userData.landTime = Date.now()
+                pickables.push(p.mesh)
+                projectiles.splice(i, 1)
+                break
+            }
+        }
+    }
+}
+
+for (let i = 0; i < 20; i++) {
+    const treeGroup = new THREE.Group()
+    treeGroup.userData.type = 'tree' // 標記為樹木
+
+    // 樹幹 (圓柱)
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 1.5, 8), trunkMat)
+    trunk.position.y = 0.75
+    trunk.castShadow = true
+
+    // 樹葉 (圓錐)
+    const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.5, 3, 8), leavesMat)
+    leaves.position.y = 2.5
+    leaves.castShadow = true
+
+    treeGroup.add(trunk, leaves)
+
+    // 隨機分佈在 -28 到 28 的範圍內 (避免生在角色出生點)
+    let tx = (Math.random() - 0.5) * 56
+    let tz = (Math.random() - 0.5) * 56
+    treeGroup.position.set(tx, 0, tz)
+    scene.add(treeGroup)
+    pickables.push(treeGroup)
+}
+
+// ── 場地散落石頭（佔位，之後可撿起） ────────────────────
+const rockMat   = createToonMat(0x888888)
+const branchMat = createToonMat(0x8b5a2b)
+
+for (let i = 0; i < 8; i++) {
+    const rock = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(0.2 + Math.random() * 0.2),
+        rockMat
+    )
+    rock.position.set((Math.random() - 0.5) * 30, 0.2, (Math.random() - 0.5) * 30)
+    rock.castShadow = true
+        rock.userData.type = 'rock' // 標記為石頭
+    scene.add(rock)
+    pickables.push(rock)
+}
+
+// ── 場地散落樹枝 ─────────────────────────────────────────
+for (let i = 0; i < 8; i++) {
+    const branch = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 0.6, 8),
+        branchMat
+    )
+    branch.position.set((Math.random() - 0.5) * 30, 0.1, (Math.random() - 0.5) * 30)
+    branch.rotation.set(Math.PI / 2, Math.random() * Math.PI, 0) // 讓樹枝平躺
+    branch.castShadow = true
+    branch.userData.type = 'branch' // 標記為樹枝
+    scene.add(branch)
+    pickables.push(branch)
+}
+
+// ── Raycaster ────────────────────────────────────────────
+const raycaster   = new THREE.Raycaster()
+const screenCenter = new THREE.Vector2(0, 0)
+
+// ── Input ────────────────────────────────────────────────
+const keys = {}
+document.addEventListener('keydown', e => keys[e.code] = true)
+document.addEventListener('keyup',   e => keys[e.code] = false)
+
+// 防止視窗失去焦點時按鍵狀態卡死導致角色無限移動
+window.addEventListener('blur', () => {
+    for (let key in keys) keys[key] = false;
+})
+
+let yaw = 0, pitch = 0, camDist = 5.5
+const speed = 0.005
+
+document.addEventListener('wheel', e => {
+    if (document.pointerLockElement === canvas) {
+        camDist += e.deltaY * 0.01
+        camDist = Math.max(2.5, Math.min(6, camDist))
+    }
+}, { passive: true })
+
+document.addEventListener('mousemove', e => {
+    if (document.pointerLockElement === canvas) {
+        // 防止切換 Pointer Lock 鎖定瞬間，游標歸中產生的極大異常位移（防視角跳躍）
+        if (Math.abs(e.movementX) > 150 || Math.abs(e.movementY) > 150) return;
+        
+        yaw   -= e.movementX * speed
+        pitch -= e.movementY * speed
+        pitch  = Math.max(-Math.PI / 2.8, Math.min(Math.PI / 4, pitch))
+    }
+})
+
+// ── Inventory System (背包系統) ───────────────────────────
+const MAX_INVENTORY = 10;
+const inventory = [];
+let selectedSlotIndex = 0;
+const projectiles = []; // 存放飛行中的發射物
+
+function updateInventoryUI() {
+    inventoryUI.innerHTML = '';
+    for (let i = 0; i < MAX_INVENTORY; i++) {
+        const slot = document.createElement('div');
+        let className = 'inventory-slot';
+        if (i < inventory.length) className += ' filled';
+        if (i === selectedSlotIndex) className += ' selected';
+        
+        slot.className = className;
+        if (i < inventory.length) {
+            const type = inventory[i].type;
+            slot.innerText = type === 'branch' ? '🪵' : type === 'tree' ? '🌲' :
+                             type === 'limb_arm' ? '💪' : type === 'limb_leg' ? '🦵' : '🪨'; 
+        }
+        inventoryUI.appendChild(slot);
+    }
+}
+updateInventoryUI(); // 初始化背包介面
+
+// ── 背包選擇 Input ───────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (document.pointerLockElement === canvas && !e.repeat) {
+        if (e.code === 'KeyQ') selectedSlotIndex = (selectedSlotIndex - 1 + MAX_INVENTORY) % MAX_INVENTORY;
+        if (e.code === 'KeyE') selectedSlotIndex = (selectedSlotIndex + 1) % MAX_INVENTORY;
+        // X 依序拆卸第一個有肢體的插槽
+        if (e.code === 'KeyX' && inventory.length < MAX_INVENTORY) {
+            const slot = LIMB_SLOTS.find(s => s.group !== null)
+            if (slot) {
+                const g = slot.group
+                const _limbCenter = getObjCenter(g)
+                playerGroup.remove(g)
+                spawnHitParticles(_limbCenter, pickupParticleMat)
+                inventory.push({
+                    type: g.userData._type, _w: g.userData._w,
+                    _h: g.userData._h, _d: g.userData._d, _mat: g.userData._mat,
+                })
+                slot.group = null
+            }
+        }
+        updateInventoryUI();
+    }
+})
+
+// 右鍵：把背包當前選中物品裝成義肢
+document.addEventListener('mousedown', e => {
+    if (document.pointerLockElement !== canvas || e.button !== 2) return
+    const slot = LIMB_SLOTS.findLast(s => s.group === null)
+    if (!slot || inventory.length === 0) return
+    const idx = Math.min(selectedSlotIndex, inventory.length - 1)
+    const item = inventory.splice(idx, 1)[0]
+    if (selectedSlotIndex >= inventory.length && inventory.length > 0) selectedSlotIndex = inventory.length - 1
+
+    const g = new THREE.Group()
+    const mesh = createItemMesh(item)
+    mesh.castShadow = true
+    mesh.position.y = -0.3
+    g.add(mesh)
+    g.position.set(...slot.pos)
+    g.userData._type = item.type
+    g.userData._w = item._w; g.userData._h = item._h
+    g.userData._d = item._d; g.userData._mat = item._mat
+    playerGroup.add(g)
+    slot.group = g
+    updateInventoryUI()
+})
+
+let isCharging = false;
+let chargeStartTime = 0;
+let playerChargePreview = null
+let playerChargePtmr   = 0
+const MAX_CHARGE_TIME = 1000; // 設定 1 秒鐘為滿蓄力
+
+// 左鍵點擊拾取 或 開始蓄力
+document.addEventListener('mousedown', e => {
+    // 確保只在遊戲進行中（游標鎖定）且按下左鍵 (0) 時觸發
+    if (document.pointerLockElement !== canvas || e.button !== 0) return;
+    
+    raycaster.setFromCamera(screenCenter, camera);
+    const pickupHit = raycaster.intersectObjects(pickables, true)[0];
+    
+    let pickedUp = false;
+    if (pickupHit) {
+        // 若為樹木的子組件，向上尋找包含 userData 的群組
+        const hitObj = pickupHit.object;
+        const rootObj = (hitObj.parent && hitObj.parent.userData.type === 'tree') ? hitObj.parent : hitObj;
+
+        const dist = playerGroup.position.distanceTo(rootObj.position);
+        if (dist < 4 && inventory.length < MAX_INVENTORY) {
+            // 從場景與可互動陣列中移除物件
+            const _pickupCenter = getObjCenter(rootObj)
+            scene.remove(rootObj);
+            pickables.splice(pickables.indexOf(rootObj), 1);
+            spawnHitParticles(_pickupCenter, pickupParticleMat)
+
+            // 加入背包並更新 UI
+            inventory.push({
+                type: rootObj.userData.type,
+                _w:   rootObj.userData._w,
+                _h:   rootObj.userData._h,
+                _d:   rootObj.userData._d,
+                _mat: rootObj.userData._mat,
+            });
+            pickedUp = true;
+            
+            // 立即還原準心狀態
+            crosshair.classList.remove('aimed-pickup');
+            updateInventoryUI();
+        }
+    }
+
+    // 如果沒有拾取物品，且當前選中的欄位有庫存，則開始蓄力
+    if (!pickedUp && selectedSlotIndex < inventory.length) {
+        isCharging = true;
+        chargeStartTime = performance.now();
+        if (crosshairRing) {
+            crosshairRing.style.display = 'block';
+            crosshairRing.style.setProperty('--charge', '0%');
+        }
+    }
+});
+
+// ── 共用：根據 item 建立投擲物 mesh ──────────────────────
+function makeProjectileMesh(item) {
+    let mesh
+    if (item.type === 'limb_arm' || item.type === 'limb_leg') {
+        mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(item._w||0.22, item._h||0.7, item._d||0.22),
+            item._mat || limbBodyMat
+        )
+        mesh.userData._w = item._w; mesh.userData._h = item._h
+        mesh.userData._d = item._d; mesh.userData._mat = item._mat
+    } else if (item.type === 'branch') {
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.6,8), branchMat)
+    } else if (item.type === 'tree') {
+        mesh = new THREE.Group()
+        const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.4,1.5,8), trunkMat)
+        tr.position.y = 0.75; tr.castShadow = true
+        const lv = new THREE.Mesh(new THREE.ConeGeometry(1.5,3,8), leavesMat)
+        lv.position.y = 2.5; lv.castShadow = true
+        mesh.add(tr, lv)
+    } else {
+        mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2+Math.random()*0.2), rockMat)
+    }
+    mesh.userData.type = item.type
+    return mesh
+}
+
+// 釋放左鍵：根據蓄力時間進行發射
+document.addEventListener('mouseup', e => {
+    if (document.pointerLockElement !== canvas || e.button !== 0) return;
+    if (!isCharging) return; // 若未在蓄力狀態則忽略
+    
+    isCharging = false;
+    if (crosshairRing) crosshairRing.style.display = 'none';
+    
+    // 結算蓄力比例 (最高 1.0)
+    const chargeDuration = performance.now() - chargeStartTime;
+    const chargeLevel = Math.min(chargeDuration / MAX_CHARGE_TIME, 1.0);
+    
+    // 蓄力直接決定力道：輕點極弱，滿蓄才有完整射程
+    const power = Math.pow(chargeLevel, 0.6); // 曲線讓前段蓄力更有感
+
+    // 從背包移除物品
+    const item = inventory.splice(selectedSlotIndex, 1)[0];
+    if (selectedSlotIndex >= inventory.length && inventory.length > 0) {
+        selectedSlotIndex = inventory.length - 1;
+    }
+
+    // 產生發射物
+    let projMesh = makeProjectileMesh(item);
+    projMesh.position.copy(playerGroup.position).add(new THREE.Vector3(0, 1.5, 0));
+        
+    // 重新檢測準心（允許玩家在蓄力期間移動準心）
+    raycaster.setFromCamera(screenCenter, camera);
+    const targetPoint = new THREE.Vector3();
+    const aimHits = raycaster.intersectObjects([...enemies, ground], true);
+    if (aimHits.length > 0) {
+        targetPoint.copy(aimHits[0].point);
+    } else {
+        // 若瞄準天空，最遠投擲距離依照蓄力力道等比放大 (範圍約 25.5 ~ 50 單位)
+        raycaster.ray.at(15 + 35 * power, targetPoint);
+    }
+    
+    const shootDir = new THREE.Vector3().subVectors(targetPoint, projMesh.position).normalize();
+    projMesh.position.addScaledVector(shootDir, 1.0);
+    projMesh.castShadow = true;
+    scene.add(projMesh);
+    
+    // 蓄力 0→速度 0.3（腳邊），蓄力 1→速度 3.0（最遠）
+    const initialSpeed = 0.1 + (1.0 * power);
+    const gravity = 10;    
+    
+    const dist = projMesh.position.distanceTo(targetPoint);
+    const timeToHit = dist / initialSpeed;
+    const velocity = shootDir.multiplyScalar(initialSpeed);
+    
+    // 自動抬槍：抬槍仰角補償上限因應更大的力道調高至 0.4
+    velocity.y += Math.min(0.5 * gravity * timeToHit, 0.1);
+
+    const _pSize = getMeshSize(projMesh)
+    velocity.multiplyScalar(1 / Math.sqrt(_pSize))
+    projectiles.push({ mesh: projMesh, velocity, power, size: _pSize });
+    updateInventoryUI();
+});
+
+// ── TPS Camera（肩膀視角 + pitch）────────────────────────
+const pivot = new THREE.Vector3()
+
+function updateCamera() {
+    pivot.copy(playerGroup.position).add(new THREE.Vector3(0, 1.5, 0))
+
+    // 相機偏移：右側 + 後方，以 YXZ 順序旋轉（先 yaw 再 pitch）
+    const offset = new THREE.Vector3(1.5, 0, camDist)
+    offset.applyEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'))
+    camera.position.copy(pivot).add(offset)
+
+    // 看向軸心前方 25 單位，形成肩膀視角
+    const forward = new THREE.Vector3(0, 0, -25)
+    forward.applyEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'))
+    camera.lookAt(pivot.clone().add(forward))
+}
+
+// ── Game Loop ────────────────────────────────────────────
+const clock = new THREE.Clock()
+let running = false
+
+// 讓玩家面向目標座標
+function faceToward(tx, tz) {
+    const dx = tx - playerGroup.position.x
+    const dz = tz - playerGroup.position.z
+    yaw = Math.atan2(-dx, -dz)
+}
+
+// ── 生命值 ────────────────────────────────────────────────
+const PLAYER_MAX_HP = 100
+let   playerHP      = PLAYER_MAX_HP
+
+function updateHpBar() {
+    const ratio = playerHP / PLAYER_MAX_HP
+    const fill  = document.getElementById('hpFill')
+    fill.style.transform  = `scaleX(${ratio})`
+    fill.style.background = ratio <= 0.3 ? '#EF5350' : '#ffffff'
+    document.getElementById('hpText').textContent = `${playerHP} / ${PLAYER_MAX_HP}`
+}
+
+function showHpDisplay(show) {
+    const el = document.getElementById('hpDisplay')
+    el.style.display = show ? 'flex' : 'none'
+    if (show) {
+        // 對齊背包欄寬度
+        requestAnimationFrame(() => {
+            const inv = document.getElementById('inventoryUI')
+            if (inv) document.getElementById('hpTrack').style.width = inv.offsetWidth + 'px'
+        })
+    }
+}
+
+function checkPlayerHits() {
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i]
+        if (!p.fromBot) continue
+        const playerCenter = playerGroup.position.clone().add(new THREE.Vector3(0, 0.8, 0))
+        if (p.mesh.position.distanceTo(playerCenter) < 1.2) {
+            playerHP = Math.max(0, playerHP - Math.ceil(Math.sqrt(p.size || 1) * (p.power || 0.5) * 6.8))
+            updateHpBar()
+            playerFlashTimer = FLASH_DUR
+            applyHitFlash(playerFlashMats)
+            spawnHitParticles(playerCenter)
+            p.mesh.userData.landTime = Date.now()
+            p.mesh.position.y = 0.2
+            pickables.push(p.mesh)
+            projectiles.splice(i, 1)
+            if (playerHP === 0) onPlayerDeath()
+        }
+    }
+}
+
+function checkOpponentHits() {
+    if (!opponent) return
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i]
+        if (p.fromBot) continue
+        const center = opponent.group.position.clone().add(new THREE.Vector3(0, 0.8, 0))
+        if (p.mesh.position.distanceTo(center) < 1.2) {
+            // PvP 對手傷害暫為視覺，血量由伺服器端決定（此處不扣）
+            opponent.flashTimer = FLASH_DUR
+            applyHitFlash(opponent.flashMats)
+            spawnHitParticles(center)
+            p.mesh.position.y = 0.2
+            p.mesh.userData.landTime = Date.now()
+            pickables.push(p.mesh)
+            projectiles.splice(i, 1)
+        }
+    }
+}
+
+function onPlayerDeath() {
+    // 重生：血量重置，位置回中心
+    playerHP = PLAYER_MAX_HP
+    updateHpBar()
+    playerGroup.position.set(0, 0.9, 0)
+}
+let walkCycle = 0
+
+function animate() {
+    if (!running) return
+    requestAnimationFrame(animate)
+    const dt = Math.min(clock.getDelta(), 0.05) // 最大 50ms，防止大跳幀
+
+    if (document.pointerLockElement === canvas) {
+        const legCount = LIMB_SLOTS.slice(2).filter(s => s.group !== null).length
+        const speedMult = legCount === 2 ? 1.0 : legCount === 1 ? 0.55 : 0.25
+        const speed = 10.0 * dt * speedMult
+        const sin = Math.sin(yaw), cos = Math.cos(yaw)
+
+        if (keys['KeyW']) { playerGroup.position.x -= sin * speed; playerGroup.position.z -= cos * speed }
+        if (keys['KeyS']) { playerGroup.position.x += sin * speed; playerGroup.position.z += cos * speed }
+        if (keys['KeyA']) { playerGroup.position.x -= cos * speed; playerGroup.position.z += sin * speed }
+        if (keys['KeyD']) { playerGroup.position.x += cos * speed; playerGroup.position.z -= sin * speed }
+
+        // ── 樹木與人物體積碰撞偵測 ──
+        for (let obj of pickables) {
+            if (obj.userData.type === 'tree') {
+                const dx = playerGroup.position.x - obj.position.x;
+                const dz = playerGroup.position.z - obj.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                const minDist = 0.7; // 玩家半徑(0.3) + 樹幹半徑(0.4)
+                if (dist < minDist && dist > 0) {
+                    const overlap = minDist - dist;
+                    playerGroup.position.x += (dx / dist) * overlap;
+                    playerGroup.position.z += (dz / dist) * overlap;
+                }
+            }
+        }
+
+        // 空氣牆限制 (場地大小為 60x60，所以邊界為 -30 到 30，設定在 29 防止半個身子穿模)
+        const bound = 29.5;
+        playerGroup.position.x = Math.max(-bound, Math.min(bound, playerGroup.position.x));
+        playerGroup.position.z = Math.max(-bound, Math.min(bound, playerGroup.position.z));
+
+        playerGroup.rotation.y = yaw
+
+        // ── 走路動畫 ──────────────────────────────────────
+        const isMoving = keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD']
+        if (isMoving) walkCycle += dt * 9
+        else walkCycle *= 0.85
+        const swing = Math.sin(walkCycle) * 0.55
+        LIMB_SLOTS.forEach(s => { if (s.group) s.group.rotation.x = s.swing * swing })
+
+        // ── 爬行模式（無腿降低重心並傾身）──────────────────
+        const targetY = legCount === 2 ? 0.9 : legCount === 1 ? 0.55 : 0.2
+        playerGroup.position.y += (targetY - playerGroup.position.y) * Math.min(dt * 7, 1)
+        body.rotation.x += (0 - body.rotation.x) * Math.min(dt * 5, 1)
+
+        if (legCount === 0) {
+            // 下半身前後推進（蠕動感）
+            const crawlRock = isMoving ? Math.sin(walkCycle * 0.8) * 0.25 : 0
+            const crawlBob  = isMoving ? Math.abs(Math.sin(walkCycle * 0.8)) * 0.06 : 0
+            body.rotation.x  += (crawlRock - body.rotation.x) * Math.min(dt * 9, 1)
+            playerGroup.position.y = targetY + crawlBob
+        } else {
+            body.rotation.z += (0 - body.rotation.z) * Math.min(dt * 6, 1)
+        }
+        
+        // 動態更新蓄力光環與嘴巴張合動畫
+        let targetJawRotation = 0;
+        if (isCharging) {
+            const chargeDuration = performance.now() - chargeStartTime;
+            const chargeLevel = Math.min(chargeDuration / MAX_CHARGE_TIME, 1.0);
+            crosshairRing.style.setProperty('--charge', `${chargeLevel * 100}%`);
+            targetJawRotation = chargeLevel * 0.8; // 隨著蓄力，嘴巴最大張開約 45 度
+        }
+        
+        // 平滑計算嘴巴的開合 (旋轉樞紐)
+        const halfRotation = targetJawRotation / 2;
+        upperHeadPivot.rotation.x += ( halfRotation - upperHeadPivot.rotation.x) * 0.3;
+        lowerJawPivot.rotation.x  += (-halfRotation - lowerJawPivot.rotation.x)  * 0.3;
+    }
+
+    // 玩家蓄力預覽模型
+    if (isCharging && inventory.length > 0) {
+        if (!playerChargePreview) {
+            const idx = Math.min(selectedSlotIndex, inventory.length - 1)
+            playerChargePreview = makeChargePreview(inventory[idx])
+            scene.add(playerChargePreview)
+        }
+        playerChargePreview.position.set(
+            playerGroup.position.x - Math.sin(yaw) * 1.3,
+            playerGroup.position.y + 1.5,
+            playerGroup.position.z - Math.cos(yaw) * 0.9
+        )
+        playerChargePreview.rotation.x += dt * 2.5
+        playerChargePreview.rotation.y += dt * 3.5
+        playerChargePreview.rotation.z += dt * 1.5
+        playerChargePtmr += dt
+        if (playerChargePtmr >= 0.08) {
+            spawnChargeParticles(playerChargePreview.position)
+            playerChargePtmr = 0
+        }
+    } else if (playerChargePreview) {
+        scene.remove(playerChargePreview)
+        playerChargePreview = null
+        playerChargePtmr = 0
+    }
+
+    updateCamera()
+
+    // 更新飛行發射物
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+
+        // ── 投擲物防穿透碰撞偵測 (射線預判) ──
+        const speedThisFrame = p.velocity.length();
+        if (speedThisFrame > 0) {
+            const dir = p.velocity.clone().normalize();
+            raycaster.set(p.mesh.position, dir);
+            
+            // 篩選出會擋住投擲物的障礙物（例如樹木與敵人，忽略地上躺著的石頭或樹枝）
+            const obstacles = [...pickables.filter(obj => obj.userData.type === 'tree'), ...enemies];
+            const hits = raycaster.intersectObjects(obstacles, true);
+
+            // 如果在這一幀的飛行軌跡內會擊中物體
+            if (hits.length > 0 && hits[0].distance <= speedThisFrame) {
+                p.mesh.position.copy(hits[0].point); // 強制將投擲物停留在精確的撞擊點
+                p.velocity.x *= -0.2; // 模擬撞擊後的反彈與減速
+                p.velocity.z *= -0.2;
+                p.velocity.y *= 0.5;
+            }
+        }
+
+        p.mesh.position.addScaledVector(p.velocity, dt * 60)
+        p.velocity.y -= 0.9 * dt  // 重力（0.015 × 60fps = 0.9/s）
+        
+        // 讓飛行的物體旋轉增加真實感
+        if (p.mesh.userData.type === 'tree') {
+            p.mesh.rotation.y += 0.2;
+            p.mesh.rotation.x += 0.02; // 減少樹木的上下翻滾，避免樹冠嚴重穿透地表
+        } else {
+            p.mesh.rotation.x += 0.2;
+            p.mesh.rotation.y += 0.2;
+        }
+        
+        // ── 發射物空氣牆邊界偵測與反彈 ──
+        const pBound = 29.5;
+        if (p.mesh.position.x > pBound || p.mesh.position.x < -pBound) {
+            p.velocity.x *= -0.5; // X軸反彈並減速
+            p.mesh.position.x = Math.sign(p.mesh.position.x) * pBound;
+        }
+        if (p.mesh.position.z > pBound || p.mesh.position.z < -pBound) {
+            p.velocity.z *= -0.5; // Z軸反彈並減速
+            p.mesh.position.z = Math.sign(p.mesh.position.z) * pBound;
+        }
+        
+        // 落地判斷
+        let landingHeight = p.mesh.userData.type === 'tree' ? 0 : 0.2;
+        if (p.mesh.position.y <= landingHeight) {
+            if (p.mesh.userData.type === 'branch') {
+                p.mesh.position.y = 0.1;
+                p.mesh.rotation.set(Math.PI / 2, Math.random() * Math.PI, 0); // 樹枝落地平躺
+            } else if (p.mesh.userData.type === 'tree') {
+                p.mesh.position.y = 0;
+                p.mesh.rotation.set(0, Math.random() * Math.PI, 0); // 樹木直立
+            } else {
+                p.mesh.position.y = 0.2;
+            }
+            p.mesh.userData.landTime = Date.now()
+            pickables.push(p.mesh); // 落地後變回可拾取物件
+            projectiles.splice(i, 1); // 從飛行陣列中移除
+        }
+    }
+
+    // 准心射線檢測
+    raycaster.setFromCamera(screenCenter, camera)
+    const enemyHit   = raycaster.intersectObjects(enemies,   true)[0]
+    const pickupHit  = raycaster.intersectObjects(pickables, true)[0]
+
+    crosshair.classList.remove('aimed-enemy', 'aimed-pickup')
+    if (enemyHit) {
+        crosshair.classList.add('aimed-enemy')
+    } else if (pickupHit) {
+        const hitObj = pickupHit.object;
+        const rootObj = (hitObj.parent && hitObj.parent.userData.type === 'tree') ? hitObj.parent : hitObj;
+        const dist = playerGroup.position.distanceTo(rootObj.position)
+        if (dist < 4) crosshair.classList.add('aimed-pickup')
+    }
+
+    // Bot 只在遊戲進行中更新（pointer lock 時）
+    if (document.pointerLockElement === canvas) {
+        updateBots(dt)
+        checkBotHits()
+        checkPlayerHits()
+        checkOpponentHits()
+    }
+
+    // ── 受擊閃紅衰退 ─────────────────────────────────────
+    const _flashEntities = [...bots]
+    if (opponent) _flashEntities.push(opponent)
+    for (const e of _flashEntities) {
+        if (e.flashTimer > 0) {
+            e.flashTimer = Math.max(0, e.flashTimer - dt)
+            const fi = (e.flashTimer / FLASH_DUR) * 1.5
+            e.flashMats.forEach(m => { m.emissiveIntensity = fi })
+            if (e.flashTimer === 0) e.flashMats.forEach(m => { m.emissive.setHex(0x000000); m.emissiveIntensity = 0 })
+        }
+    }
+    if (playerFlashTimer > 0) {
+        playerFlashTimer = Math.max(0, playerFlashTimer - dt)
+        const fi = (playerFlashTimer / FLASH_DUR) * 1.5
+        playerFlashMats.forEach(m => { m.emissiveIntensity = fi })
+        if (playerFlashTimer === 0) playerFlashMats.forEach(m => { m.emissive.setHex(0x000000); m.emissiveIntensity = 0 })
+    }
+
+    // ── 粒子更新 ─────────────────────────────────────────
+    for (let i = hitParticles.length - 1; i >= 0; i--) {
+        const hp = hitParticles[i]
+        hp.userData.life -= dt
+        if (hp.userData.life <= 0) { scene.remove(hp); hitParticles.splice(i, 1); continue }
+        hp.userData.vel.y -= 18 * dt
+        hp.position.addScaledVector(hp.userData.vel, dt)
+        hp.rotation.x += dt * 8
+        hp.rotation.y += dt * 6
+        const t = hp.userData.life / hp.userData.maxLife
+        hp.scale.setScalar(Math.max(0, t))
+    }
+
+    updateEnemyLabels()
+    rippleMat.uniforms.uTime.value += dt
+
+    // ── PvP 狀態發送（20Hz）──────────────────────────
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const now = Date.now()
+        if (now - lastSendMs > 50) {
+            ws.send(JSON.stringify({
+                type:  'state_update',
+                pos:   playerGroup.position.toArray(),
+                yaw:   yaw,
+                limbs: LIMB_SLOTS.map(s => s.group !== null),
+            }))
+            lastSendMs = now
+        }
+    }
+
+    for (const c of cloudObjects) {
+        c.mesh.position.x += c.speed * dt
+        if (c.mesh.position.x > 80) c.mesh.position.x = -80
+    }
+    // 深度 pre-pass（供體積霧重建世界座標）
+    renderer.setRenderTarget(depthTarget)
+    renderer.render(scene, camera)
+    renderer.setRenderTarget(null)
+
+    // 更新體積霧 uniforms
+    volFogPass.uniforms.uCamPos.value.copy(camera.position)
+    volFogPass.uniforms.uProjInv.value.copy(camera.projectionMatrixInverse)
+    volFogPass.uniforms.uViewInv.value.copy(camera.matrixWorld)
+    volFogPass.uniforms.uSunDir.value.copy(sun.position).normalize()
+
+    composer.render()
+}
+
+// ── Navbar 收納邏輯 ──────────────────────────────────────
+const pauseOverlay = document.getElementById('pauseOverlay')
+navbar.style.transition = 'transform 0.3s ease'
+
+function hideNavbar() {
+    navbar.style.transform = 'translateY(-100%)'
+    navbar.style.zIndex    = ''
+    navbar.style.position  = ''
+}
+function showNavbar() {
+    navbar.style.position  = 'fixed'
+    navbar.style.top       = '0'
+    navbar.style.width     = '100%'
+    navbar.style.zIndex    = '3000'
+    navbar.style.transform = 'translateY(0)'
+}
+
+// 觸頂召喚：只在暫停狀態下生效（Pointer Lock 釋放後滑鼠才有真實座標）
+document.addEventListener('mousemove', e => {
+    if (document.pointerLockElement !== canvas && running) {
+        // 檢查是否有展開的下拉選單 (Bootstrap 會加上 'show' class)
+        const isDropdownOpen = navbar.querySelector('.show') !== null;
+        
+        if (e.clientY < 80 || navbar.contains(e.target) || isDropdownOpen) {
+            showNavbar()
+        } else {
+            hideNavbar()
+        }
+    }
+})
+
+// Pointer Lock 狀態切換
+document.addEventListener('pointerlockchange', () => {
+    if (document.pointerLockElement === canvas) {
+        hideNavbar()
+        pauseOverlay.style.display = 'none'
+        crosshair.style.display    = 'flex'
+    } else if (running) {
+        pauseOverlay.style.display = 'flex'
+        crosshair.style.display    = 'none'
+        // 暫停時強制中斷蓄力
+        isCharging = false;
+        crosshairRing.style.display = 'none';
+    }
+})
+
+// ── 暫停畫面按鈕 ─────────────────────────────────────────
+document.getElementById('resumeBtn').addEventListener('click', () => {
+    canvas.requestPointerLock()
+})
+
+document.getElementById('exitBtn').addEventListener('click', () => {
+    running = false
+    canvas.style.display       = 'none'
+    pauseOverlay.style.display = 'none'
+    crosshair.style.display    = 'none'
+    inventoryUI.style.display  = 'none'
+    showHpDisplay(false)
+    document.getElementById('clickToEnter').style.display  = 'none'
+    document.getElementById('waitingOverlay').style.display = 'none'
+    document.getElementById('arenaLayout').style.display   = 'flex'
+    if (ws)       { ws.close(); ws = null }
+    if (opponent) { scene.remove(opponent.group); opponent = null }
+    if (playerChargePreview) { scene.remove(playerChargePreview); playerChargePreview = null }
+    bots.forEach(b => {
+        scene.remove(b.group)
+        if (b.chargePreview) scene.remove(b.chargePreview)
+        enemies.splice(enemies.indexOf(b.group), 1)
+        b.label.remove()
+    })
+    bots.length = 0
+    startScr.style.display = 'flex'
+    navbar.style.position  = ''
+    navbar.style.top       = ''
+    navbar.style.width     = ''
+    navbar.style.zIndex    = ''
+    navbar.style.transform = ''
+})
+
+// ── PvP 連線 ──────────────────────────────────────────────
+let ws          = null
+let opponent    = null   // { group, body, limbs[] }
+let lastSendMs  = 0
+
+function applyPlayerColor() {
+    const c = new THREE.Color(window.playerBodyColor || '#47A5E7')
+    body.material.color.copy(c)
+    ;[rightArmGroup, leftArmGroup].forEach(g => {
+        if (g.children[0]?.material) g.children[0].material.color.copy(c)
+    })
+}
+
+function createOpponent(bodyColor) {
+    const g    = new THREE.Group()
+    const bMat = createToonMat(bodyColor)
+    const hMat = createToonMat(0xE7CEB6)
+    const sMat = createToonMat(0xE7CEB6)
+    const oppBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.4), bMat)
+    oppBody.position.y = 0.6; oppBody.castShadow = true
+    const oppHead = new THREE.Group(); oppHead.position.y = 1.5
+    oppHead.add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.55), hMat))
+    const oppLimbs = [
+        makeLimb(0.22, 1, 0.22, bMat,  0.51,  1.1, 0),
+        makeLimb(0.22, 1, 0.22, bMat, -0.51,  1.1, 0),
+        makeLimb(0.24, 0.85, 0.24, sMat,  0.22, -0.05, 0),
+        makeLimb(0.24, 0.85, 0.24, sMat, -0.22, -0.05, 0),
+    ]
+    g.add(oppBody, oppHead, ...oppLimbs)
+    g.position.set(3, 0.9, 0)
+    scene.add(g)
+
+    const label = document.createElement('div')
+    label.className = 'enemy-label'
+    label.innerHTML = `<span class="enemy-label-name" id="opp-label-name">?</span>
+        <div class="enemy-hp-track"><div class="enemy-hp-fill" id="opp-hp-fill"></div></div>`
+    document.body.appendChild(label)
+
+    return { group: g, body: oppBody, limbs: oppLimbs, label, flashMats: [bMat, sMat], flashTimer: 0 }
+}
+
+function startPvP(opponentColor, role, opponentName, opponentAvatar) {
+    console.log('[arena] startPvP role=', role, 'color=', opponentColor)
+    applyPlayerColor()
+    resetPlayerLimbs()
+    const myZ  = role === 'host' ? -15 : 15
+    const oppZ = role === 'host' ?  15 : -15
+    playerGroup.position.set(0, 0.9, myZ)
+    faceToward(0, oppZ)   // 面向對手出生點
+    opponent = createOpponent(opponentColor)
+    opponent.group.position.set(0, 0.9, oppZ)
+    const nameEl = document.getElementById('opp-label-name')
+    if (nameEl) nameEl.textContent = opponentName || '?'
+    startScr.style.display    = 'none'
+    canvas.style.display      = 'block'
+    inventoryUI.style.display = 'flex'
+    playerHP = PLAYER_MAX_HP; updateHpBar(); showHpDisplay(true)
+    running = true
+    animate()
+    hideNavbar()
+    // requestPointerLock 必須在使用者手勢中呼叫，用 overlay 橋接
+    // 顯示 ready 畫面，設定對手資訊
+    const cte     = document.getElementById('clickToEnter')
+    const video   = cte.querySelector('video')
+    if (video && !video.src) video.src = '/media/videos/lake.mkv'
+    document.getElementById('matchName').textContent = opponentName || ''
+    const avatarEl   = document.getElementById('matchAvatar')
+    const avatarPath = opponentAvatar
+    avatarEl.src = avatarPath
+        ? `/static/images/avatars/${avatarPath}`
+        : '/static/images/avatars/avatar_default.png'
+    document.getElementById('myReadyDot').style.background  = 'rgba(255,255,255,0.2)'
+    document.getElementById('oppReadyDot').style.background = 'rgba(255,255,255,0.2)'
+    const readyBtn = document.getElementById('readyBtn')
+    readyBtn.disabled   = false
+    readyBtn.textContent = '準備開始'
+    cte.style.display   = 'flex'
+
+    readyBtn.onclick = () => {
+        readyBtn.disabled    = true
+        readyBtn.textContent = '等待對方...'
+        document.getElementById('myReadyDot').style.background = '#7caac5'
+        if (ws) ws.send(JSON.stringify({ type: 'ready' }))
+    }
+}
+
+function connectArena() {
+    const url = `ws://${location.host}/ws/arena/`
+    ws = new WebSocket(url)
+
+    ws.onopen = () => ws.send(JSON.stringify({
+        type: 'join_queue',
+        bodyColor: window.playerBodyColor || '#47A5E7',
+    }))
+
+    ws.onmessage = ({ data }) => {
+        const msg = JSON.parse(data)
+        console.log('[arena] ws:', msg.type, msg)
+        if (msg.type === 'waiting') {
+            // 已顯示等待 UI，不需操作
+        } else if (msg.type === 'game_start') {
+            console.log('[arena] game_start → startPvP, role=', msg.role)
+            document.getElementById('waitingOverlay').style.display = 'none'
+            startPvP(msg.opponentColor, msg.role, msg.opponentName, msg.opponentAvatar)
+        } else if (msg.type === 'opponent_ready') {
+            document.getElementById('oppReadyDot').style.background = '#7caac5'
+        } else if (msg.type === 'game_begin') {
+            const cte = document.getElementById('clickToEnter')
+            cte.style.cursor = 'pointer'
+            document.getElementById('readyBtn').style.display = 'none'
+            document.getElementById('myReadyDot').style.background  = '#7caac5'
+            document.getElementById('oppReadyDot').style.background = '#7caac5'
+            document.getElementById('matchName').textContent = '點擊進入'
+            cte.addEventListener('click', () => {
+                cte.style.display  = 'none'
+                cte.style.cursor   = ''
+                canvas.requestPointerLock()
+            }, { once: true })
+        } else if (msg.type === 'state_update' && opponent) {
+            opponent.group.position.fromArray(msg.pos)
+            opponent.group.rotation.y = msg.yaw
+            msg.limbs?.forEach((on, i) => { if (opponent.limbs[i]) opponent.limbs[i].visible = on })
+        } else if (msg.type === 'opponent_disconnected') {
+            if (opponent) { scene.remove(opponent.group); opponent = null }
+        }
+    }
+
+    ws.onclose = () => { ws = null }
+    ws.onerror = (e) => console.error('WS error', e)
+}
+
+const waitingOverlay  = document.getElementById('waitingOverlay')
+const arenaLayoutEl   = document.getElementById('arenaLayout')
+
+document.getElementById('btnQuickMatch').addEventListener('click', () => {
+    arenaLayoutEl.style.display = 'none'
+    waitingOverlay.style.display = 'flex'
+    connectArena()
+})
+
+document.getElementById('cancelQueue').addEventListener('click', () => {
+    if (ws) { ws.close(); ws = null }
+    waitingOverlay.style.display = 'none'
+    arenaLayoutEl.style.display  = 'flex'
+})
+
+// ── 開始 ─────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', () => {
+    console.log('[arena] startBtn clicked')
+    applyPlayerColor()
+    resetPlayerLimbs()
+    bots.push(createBot(5, 5))
+    faceToward(bots[0].group.position.x, bots[0].group.position.z)
+    startScr.style.display = 'none'
+    canvas.style.display   = 'block'
+    inventoryUI.style.display = 'flex'
+    playerHP = PLAYER_MAX_HP; updateHpBar(); showHpDisplay(true)
+    running = true
+    animate()
+    hideNavbar()
+    const lockResult = canvas.requestPointerLock()
+    if (lockResult instanceof Promise) {
+        lockResult
+            .then(() => console.log('[arena] pointer lock OK'))
+            .catch(e  => console.error('[arena] pointer lock FAILED:', e))
+    }
+})
+
+// ── Resize ───────────────────────────────────────────────
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight
+    camera.updateProjectionMatrix()
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    composer.setSize(window.innerWidth, window.innerHeight)
+    const _dbs = renderer.getDrawingBufferSize(new THREE.Vector2())
+    renderTarget.setSize(_dbs.x, _dbs.y)
+    depthTarget.setSize(_dbs.x, _dbs.y)
+    halftoneShared.uResolution.value.set(window.innerWidth, window.innerHeight)
+})
+</script>
+
+{% endblock %}

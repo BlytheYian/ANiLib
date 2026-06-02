@@ -39,6 +39,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,6 +50,7 @@ INSTALLED_APPS = [
     'django_admin_listfilter_dropdown',
     'imagekit',
     'axes',
+    'django_cleanup.apps.CleanupConfig',
     "ani",
     "accounts",
     "arena",
@@ -143,3 +146,17 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [ BASE_DIR / "static" ]
 
 IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = 'imagekit.cachefiles.strategies.Optimistic'
+
+ASGI_APPLICATION = 'anilib_project.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        #'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        #'CONFIG': {
+        #    "hosts": [('127.0.0.1', 6379)],
+        #},
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+IMDB_WATCHLIST_URL = "https://www.imdb.com/user/p.pyg5caj2mghtbz56cw4z2xk7sq/watchlist/?ref_=tt_nv_urwls_all"

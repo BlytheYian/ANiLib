@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFit
 
@@ -77,15 +78,72 @@ class Ani(models.Model):
     
     description = models.TextField(blank=True, null=True, verbose_name="簡介")
     
-    studio = models.ManyToManyField(Studio, verbose_name="工作室/公司")
-    tags = models.ManyToManyField(Tag, verbose_name="標籤")
-    creators = models.ManyToManyField(Creator, verbose_name="創作者")
+    studio = models.ManyToManyField(Studio, blank=True, verbose_name="工作室/公司")
+    tags = models.ManyToManyField(Tag, blank=True, verbose_name="標籤")
+    creators = models.ManyToManyField(Creator, blank=True, verbose_name="創作者")
     
     class Meta:
         verbose_name = "動畫"
         verbose_name_plural = "動畫庫"
     def __str__(self):
         return self.title
+
+class AniAlias(models.Model):
+    ani = models.ForeignKey(Ani, on_delete=models.CASCADE, related_name='aliases')
+    title = models.CharField(max_length=200, verbose_name="別名")
+    source = models.CharField(max_length=100, blank=True, null=True, verbose_name="來源")
+
+    class Meta:
+        verbose_name = "別名"
+        verbose_name_plural = "別名庫"
+
+    def __str__(self):
+        return f"{self.ani.title} - {self.title}"
+
+class SyncJob(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', '等待中'
+        RUNNING = 'RUNNING', '執行中'
+        DONE    = 'DONE',    '完成'
+        ERROR   = 'ERROR',   '錯誤'
+
+    status     = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    progress   = models.IntegerField(default=0)
+    total      = models.IntegerField(default=0)
+    log        = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "同步任務"
+        verbose_name_plural = "同步任務紀錄"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"SyncJob #{self.pk} [{self.status}] {self.progress}/{self.total}"
+
+    @property
+    def progress_pct(self):
+        return int(self.progress / self.total * 100) if self.total else 0
+
+
+class UserReview(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
+    ani  = models.ForeignKey(Ani, on_delete=models.CASCADE, related_name='reviews')
+    score = models.PositiveSmallIntegerField(null=True, blank=True)  # 1–10, optional
+    text = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'ani')
+        ordering = ['-updated_at']
+        verbose_name = "評分與評論"
+        verbose_name_plural = "評分與評論"
+
+    def __str__(self):
+        return f"{self.user} → {self.ani.title}"
+
 
 class Episode(models.Model):
     ani = models.ForeignKey(Ani, on_delete=models.CASCADE, related_name='episodes')

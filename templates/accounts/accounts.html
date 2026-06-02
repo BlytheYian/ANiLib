@@ -17,8 +17,8 @@
         {% for message in messages %}
         <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show border-0 rounded-pill px-5 py-2 auto-dismiss-alert" role="alert">
             <span class="fw-bold">{{ message }}</span>
-        {% endfor %}
         </div>
+        {% endfor %}
     </div>
     {% endif %}
 

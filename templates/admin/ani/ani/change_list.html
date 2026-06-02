@@ -1,0 +1,21 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+<li>
+    <button type="button" class="addlink" id="imdbSyncAllBtn" style="cursor:pointer; border:none; background:transparent; font-size:0.8125rem; padding:5px 15px; line-height:15px; height:auto;">
+        ⬇ 從 IMDb 批量匯入
+    </button>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block footer %}
+{{ block.super }}
+{% include "admin/ani/ani/_imdb_sync_modal.html" %}
+<script>
+document.getElementById('imdbSyncAllBtn').addEventListener('click', function () {
+    openSyncInputModal('{% url "admin:ani_ani_imdb_sync_start" %}');
+});
+</script>
+{% endblock %}

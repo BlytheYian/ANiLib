@@ -20,7 +20,7 @@
             
             <a href="{% url 'ani_detail' ani.pk %}" class="text-decoration-none text-reset d-block">
                 <div class="position-relative overflow-hidden" 
-                         style="height: 41vw; min-height: 400px; max-height: 700px; width: 100%;">
+                         style="height: 41vw; min-height: min(400px, 40vh); max-height: 700px; width: 100%;">
                     
                     <div class="position-absolute w-100 h-100" style="
                         background: #333 url('{% if ani.banner %}{{ ani.banner.url }}{% elif ani.poster %}{{ ani.poster.url }}{% endif %}') center/cover no-repeat; 
@@ -45,7 +45,7 @@
                                     </button>
                                     <img src="{{ ani.poster.url }}" 
                                         class="img-fluid rounded-3 shadow-lg border border-light border-opacity-25 object-fit-cover mx-auto d-block" 
-                                        style="max-height: 430px; aspect-ratio: 26 / 40; max-width: 280px; width: 100%;"
+                                        style="max-height: 75vh; aspect-ratio: 26 / 40; max-width: 40vh; width: 100%;"
                                         loading="lazy">
                                 </div>
                                 {% endif %}
@@ -89,10 +89,13 @@
     </div>
 
     <div class="col-lg-3">
-        <div class="card w-100 shadow-sm border-0 bg-body-tertiary d-flex flex-column overflow-hidden rounded-0" style="height: 41vw; min-height: 400px; max-height: 700px;">
+        <div class="card w-100 shadow-sm border-0 bg-body-tertiary d-flex flex-column overflow-hidden rounded-0" style="height: 41vw; min-height: min(400px, 40vh); max-height: 700px;">
             
             <div class="card-header bg-transparent border-bottom fw-bold py-3 d-flex justify-content-between align-items-center">
                 <span>即將更新</span>
+                <button class="btn btn-sm p-0 text-muted" data-bs-toggle="modal" data-bs-target="#calendarModal" title="更新日曆">
+                    <i class="bi bi-calendar3" style="font-size: 1.1rem;"></i>
+                </button>
             </div>
 
             <div class="card-body p-0 d-flex flex-column overflow-auto hide-scrollbar flex-grow-1 {% if upcoming_episodes %}bg-body{% else %}bg-body-secondary{% endif %}">    
@@ -339,6 +342,244 @@
         color: #a0adb9 !important;
     }
 </style>
+
+<script type="application/json" id="calDataJson">{{ cal_data_json|safe }}</script>
+
+<div class="modal fade" id="calendarModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: min(660px, 92vw);">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-1">
+                <div class="d-flex align-items-center w-100 gap-2">
+                    <button class="btn btn-sm btn-outline-secondary px-2 py-0 lh-lg" id="calPrev">&#8249;</button>
+                    <h6 class="modal-title fw-bold flex-grow-1 text-center mb-0" id="calMonthLabel"></h6>
+                    <button class="btn btn-sm btn-outline-secondary px-2 py-0 lh-lg" id="calNext">&#8250;</button>
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body pt-2 d-flex gap-3 position-relative" style="min-height: clamp(300px, 55vh, 480px); align-items: center;">
+                <div id="calYearPicker" class="position-absolute top-0 start-0 w-100 h-100 bg-body rounded p-3" style="display:none; z-index:10;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <button class="btn btn-sm btn-outline-secondary px-2" id="pickerPrevYear">&#8249;</button>
+                        <span class="fw-bold" id="pickerYearLabel"></span>
+                        <button class="btn btn-sm btn-outline-secondary px-2" id="pickerNextYear">&#8250;</button>
+                    </div>
+                    <div class="month-picker-grid" id="pickerMonthGrid"></div>
+                </div>
+                <div id="calGrid" style="flex: 0 0 280px; max-width: 100%;"></div>
+                <div id="calDetail" class="border-start ps-3 flex-grow-1 overflow-auto hide-scrollbar" style="min-width: 140px; max-height: clamp(260px, 50vh, 440px); align-self: stretch;">
+                    <div id="calDayDetail" class="h-100 d-flex align-items-center justify-content-center text-muted">
+                        <div class="text-center">
+                            <i class="bi bi-calendar3 fs-3 mb-2 d-block opacity-25"></i>
+                            <span style="font-size: 0.82rem;">點選日期查看更新</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+        text-align: center;
+    }
+    .cal-header {
+        font-size: 0.72rem;
+        color: #888;
+        padding: 4px 0 6px;
+    }
+    .cal-day {
+        padding: 4px 2px 3px;
+        border-radius: 6px;
+        font-size: 0.88rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        cursor: default;
+        min-height: 36px;
+    }
+    .cal-day.has-eps {
+        cursor: pointer;
+        color: #7caac5;
+        font-weight: 600;
+    }
+    .cal-day.has-eps:hover { background: rgba(124,170,197,0.15); }
+    .cal-day.is-today > span:first-child {
+        background: #6b9ab8;
+        color: #fff;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .cal-day.is-selected { background: rgba(124,170,197,0.25); }
+    .cal-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7caac5;
+        display: block;
+    }
+    .cal-ep-item { transition: background 0.15s; border-radius: 6px; }
+    .cal-ep-item:hover { background: rgba(124,170,197,0.12); }
+    .cal-badge-aired { background-color: #7caac5 !important; }
+    /* 窄螢幕：改為直排 */
+    @media (max-width: 520px) {
+        .modal-body { flex-direction: column !important; }
+        #calGrid { margin-inline: auto; max-width: 280px; width: 100%; }
+        #calDetail {
+            border-left: none !important;
+            padding-left: 0 !important;
+            border-top: 1px solid var(--bs-border-color);
+            padding-top: 0.5rem;
+            max-width: 280px;
+            width: 100%;
+            margin-inline: auto;
+        }
+    }
+    #calMonthLabel { cursor: pointer; }
+    #calMonthLabel:hover { color: #7caac5; }
+    .month-picker-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+    .cal-month-btn-active { background-color: #7caac5 !important; border-color: #7caac5 !important; color: #fff !important; }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    (function() {
+        const calData = JSON.parse(document.getElementById('calDataJson').textContent);
+        const today = new Date();
+        let curYear = today.getFullYear();
+        let curMonth = today.getMonth();
+        let selectedDate = null;
+        let pickerYear = curYear;
+
+        const MIN_YEAR = 2026, MIN_MONTH = 0;
+        const maxFwd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        const MAX_YEAR = maxFwd.getFullYear(), MAX_MONTH = maxFwd.getMonth();
+
+        const DAYS = ['日','一','二','三','四','五','六'];
+        const MONTHS_ZH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+        function renderCalendar() {
+            document.getElementById('calMonthLabel').textContent = `${curYear} 年 ${MONTHS_ZH[curMonth]}`;
+            document.getElementById('calPrev').disabled = (curYear===MIN_YEAR && curMonth===MIN_MONTH);
+            document.getElementById('calNext').disabled = (curYear===MAX_YEAR && curMonth===MAX_MONTH);
+            const firstDay = new Date(curYear, curMonth, 1).getDay();
+            const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+            let html = '<div class="cal-grid">';
+            for (const d of DAYS) html += `<div class="cal-header">${d}</div>`;
+            for (let i = 0; i < firstDay; i++) html += '<div></div>';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dk = `${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const hasEps = !!calData[dk];
+                const isToday = today.getFullYear()===curYear && today.getMonth()===curMonth && today.getDate()===d;
+                const isSel = selectedDate === dk;
+                html += `<div class="cal-day${hasEps?' has-eps':''}${isToday?' is-today':''}${isSel?' is-selected':''}" data-date="${dk}">
+                    <span>${d}</span>${hasEps?'<span class="cal-dot"></span>':''}
+                </div>`;
+            }
+            html += '</div>';
+            document.getElementById('calGrid').innerHTML = html;
+            document.querySelectorAll('.cal-day.has-eps').forEach(el => {
+                el.addEventListener('click', () => {
+                    selectedDate = el.dataset.date;
+                    renderCalendar();
+                    renderDayDetail(selectedDate);
+                });
+            });
+        }
+
+        function renderDayDetail(dk) {
+            const detail = document.getElementById('calDayDetail');
+            const eps = calData[dk];
+            if (!eps || !eps.length) { resetDetail(); return; }
+            detail.className = '';
+            const lang = localStorage.getItem('site_lang') || 'zh';
+            const now = new Date();
+            let html = `<h6 class="fw-bold mb-3 text-body">${dk.replace(/-/g,'/')}</h6>`;
+            for (const ep of eps) {
+                const t = lang==='zh'?(ep.title_zh||ep.title): lang==='ch'?(ep.title_ch||ep.title):ep.title;
+                const img = ep.poster
+                    ? `<img src="${ep.poster}" class="rounded-2 object-fit-cover flex-shrink-0" style="width:38px;height:54px;" loading="lazy">`
+                    : `<div class="rounded-2 bg-secondary bg-opacity-25 flex-shrink-0" style="width:38px;height:54px;"></div>`;
+                const aired = new Date(dk + 'T' + ep.time) < now;
+                const badgeCls = aired ? 'cal-badge-aired' : 'bg-secondary';
+                html += `<a href="/ani/${ep.pk}/" class="d-flex align-items-center text-decoration-none text-reset mb-2 p-2 cal-ep-item">
+                    ${img}
+                    <div class="ms-2 overflow-hidden flex-grow-1">
+                        <div class="text-truncate fw-semibold" style="font-size:.85rem;">${t}</div>
+                        <div class="text-muted" style="font-size:.75rem;">${ep.ep}</div>
+                        <span class="badge ${badgeCls} mt-1" style="font-size:.7rem;">${ep.time}</span>
+                    </div>
+                </a>`;
+            }
+            detail.innerHTML = html;
+        }
+
+        function resetDetail() {
+            selectedDate = null;
+            const detail = document.getElementById('calDayDetail');
+            detail.className = 'h-100 d-flex align-items-center justify-content-center text-muted';
+            detail.innerHTML = '<div class="text-center"><i class="bi bi-calendar3 fs-3 mb-2 d-block opacity-25"></i><span style="font-size:.82rem;">點選日期查看更新</span></div>';
+        }
+
+        function renderPicker() {
+            document.getElementById('pickerYearLabel').textContent = `${pickerYear} 年`;
+            document.getElementById('pickerPrevYear').disabled = pickerYear <= MIN_YEAR;
+            document.getElementById('pickerNextYear').disabled = pickerYear >= MAX_YEAR;
+            let html = '';
+            for (let m = 0; m < 12; m++) {
+                const disabled = (pickerYear===MIN_YEAR && m<MIN_MONTH) || (pickerYear===MAX_YEAR && m>MAX_MONTH);
+                const active = pickerYear===curYear && m===curMonth;
+                html += `<button class="btn btn-sm ${active?'cal-month-btn-active':'btn-outline-secondary'}" ${disabled?'disabled':''} data-m="${m}">${MONTHS_ZH[m]}</button>`;
+            }
+            document.getElementById('pickerMonthGrid').innerHTML = html;
+            document.getElementById('pickerMonthGrid').querySelectorAll('button:not([disabled])').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    curYear=pickerYear; curMonth=parseInt(btn.dataset.m);
+                    resetDetail(); renderCalendar(); closePicker();
+                });
+            });
+        }
+
+        function openPicker() {
+            pickerYear=curYear; renderPicker();
+            document.getElementById('calYearPicker').style.display='';
+            document.getElementById('calPrev').style.display='none';
+            document.getElementById('calMonthLabel').style.display='none';
+            document.getElementById('calNext').style.display='none';
+        }
+        function closePicker() {
+            document.getElementById('calYearPicker').style.display='none';
+            document.getElementById('calPrev').style.display='';
+            document.getElementById('calMonthLabel').style.display='';
+            document.getElementById('calNext').style.display='';
+        }
+
+        document.getElementById('pickerPrevYear').addEventListener('click', () => { if(pickerYear>MIN_YEAR){pickerYear--;renderPicker();} });
+        document.getElementById('pickerNextYear').addEventListener('click', () => { if(pickerYear<MAX_YEAR){pickerYear++;renderPicker();} });
+        document.getElementById('calMonthLabel').addEventListener('click', openPicker);
+
+        document.getElementById('calPrev').addEventListener('click', () => {
+            if (curYear===MIN_YEAR && curMonth===MIN_MONTH) return;
+            if (--curMonth < 0) { curMonth=11; curYear--; }
+            resetDetail(); renderCalendar();
+        });
+        document.getElementById('calNext').addEventListener('click', () => {
+            if (curYear===MAX_YEAR && curMonth===MAX_MONTH) return;
+            if (++curMonth > 11) { curMonth=0; curYear++; }
+            resetDetail(); renderCalendar();
+        });
+        document.getElementById('calendarModal').addEventListener('show.bs.modal', renderCalendar);
+    })();
+});
+</script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {

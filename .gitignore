@@ -16,3 +16,4 @@ readit.md
 *.md
 ani_data.json
 static/images/
+backup_*.json

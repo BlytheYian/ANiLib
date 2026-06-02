@@ -1,0 +1,323 @@
+<style>
+.imdb-modal-box {
+    background: var(--body-bg);
+    color: var(--body-fg);
+    border-radius: 8px;
+    padding: 28px;
+    max-width: 90vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.imdb-modal-subtitle {
+    font-size: 0.85rem;
+    color: var(--secondary);
+    margin-bottom: 16px;
+}
+.imdb-modal-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.imdb-modal-divider {
+    text-align: center;
+    color: var(--secondary);
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+    opacity: 0.6;
+}
+.imdb-modal-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.82rem;
+    font-family: monospace;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    resize: vertical;
+    background: var(--darkened-bg);
+    color: var(--body-fg);
+}
+.imdb-modal-log {
+    background: var(--darkened-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 12px;
+    max-height: 280px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    display: none;
+    margin-bottom: 14px;
+}
+.imdb-modal-progress-track {
+    background: var(--darkened-bg);
+    border-radius: 6px;
+    height: 18px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+.imdb-btn-cancel {
+    background: var(--darkened-bg);
+    color: var(--body-fg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 7px 18px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.imdb-btn-cancel:hover {
+    filter: brightness(0.9);
+}
+.imdb-btn-primary {
+    background: #7caac5;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 7px 22px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.imdb-btn-primary:hover {
+    background: #6b9ab5;
+}
+.imdb-badge {
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--darkened-bg);
+    color: var(--secondary);
+}
+</style>
+
+<!-- Input dialog -->
+<div id="imdbInputOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99998; align-items:center; justify-content:center;">
+    <div class="imdb-modal-box" style="width:520px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <h5 style="margin:0; font-size:1.05rem; font-weight:600;">批量 IMDb 同步</h5>
+            <button type="button" onclick="closeInputModal()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--secondary); line-height:1;">&times;</button>
+        </div>
+
+        <p class="imdb-modal-subtitle">從 IMDb 帳號「清單 → 匯出」下載 CSV，或直接貼上 <code>tt</code> ID。</p>
+
+        <div style="margin-bottom:14px;">
+            <label class="imdb-modal-label">匯入 CSV 檔案</label>
+            <input type="file" id="syncCsvFile" accept=".csv" style="font-size:0.85rem;">
+        </div>
+
+        <div class="imdb-modal-divider">── 或 ──</div>
+
+        <div style="margin-bottom:14px;">
+            <label class="imdb-modal-label">貼上 IMDb ID（每行或逗號分隔）</label>
+            <textarea id="syncIdsText" rows="4" placeholder="tt1234567&#10;tt7654321&#10;..." class="imdb-modal-textarea"></textarea>
+        </div>
+
+        <div class="imdb-modal-divider">── 或 ──</div>
+
+        <div style="margin-bottom:18px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" id="syncUseWatchlist" style="width:16px; height:16px;">
+                <span>使用 settings.py 設定的 Watchlist URL 自動抓取</span>
+            </label>
+        </div>
+
+        <div style="margin-bottom:14px; padding:10px 14px; background:var(--darkened-bg); border-radius:4px; border:1px solid var(--border-color); display:flex; flex-direction:column; gap:8px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" id="syncNewOnly" style="width:15px; height:15px;">
+                <span>僅加入新作品（預先過濾已在資料庫的 ID）</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" id="syncSmartScan" style="width:15px; height:15px;">
+                <span>智慧掃描（依缺漏欄位決定爬取範圍，跳過已完整的項目）</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; cursor:pointer;">
+                <input type="checkbox" id="syncForceStars" checked style="width:15px; height:15px;">
+                <span>覆蓋已有 IMDb 評分</span>
+            </label>
+        </div>
+
+        <div id="inputError" style="display:none; color:#e05c5c; font-size:0.82rem; margin-bottom:10px;"></div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" onclick="closeInputModal()" class="imdb-btn-cancel">取消</button>
+            <button type="button" onclick="submitSyncForm()" class="imdb-btn-primary">開始同步</button>
+        </div>
+    </div>
+</div>
+
+<!-- Progress overlay -->
+<div id="imdbSyncOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center;">
+    <div class="imdb-modal-box" style="width:560px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h5 id="syncModalTitle" style="margin:0; font-size:1.05rem; font-weight:600;">IMDb 同步中...</h5>
+            <span id="syncStatusBadge" class="imdb-badge">等待中</span>
+        </div>
+
+        <div class="imdb-modal-progress-track">
+            <div id="syncProgressBar" style="height:100%; width:0%; background:#7caac5; transition:width 0.4s ease; border-radius:6px;"></div>
+        </div>
+        <div id="syncProgressText" style="font-size:0.82rem; color:#7caac5; margin-bottom:14px;">正在連接...</div>
+
+        <div id="syncLog" class="imdb-modal-log"></div>
+
+        <div style="text-align:right;">
+            <button type="button" id="syncCloseBtn" onclick="closeSyncModal()" class="imdb-btn-primary" style="display:none;">關閉</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var _syncUrl = null;
+
+    function getCsrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    window.openSyncInputModal = function (url) {
+        _syncUrl = url;
+        document.getElementById('syncCsvFile').value = '';
+        document.getElementById('syncIdsText').value = '';
+        document.getElementById('syncUseWatchlist').checked = false;
+        document.getElementById('syncNewOnly').checked = false;
+        document.getElementById('syncSmartScan').checked = false;
+        document.getElementById('syncForceStars').checked = true;
+        document.getElementById('inputError').style.display = 'none';
+        document.getElementById('imdbInputOverlay').style.display = 'flex';
+    };
+
+    window.closeInputModal = function () {
+        document.getElementById('imdbInputOverlay').style.display = 'none';
+    };
+
+    window.submitSyncForm = function () {
+        const csvInput = document.getElementById('syncCsvFile');
+        const idsText  = document.getElementById('syncIdsText').value.trim();
+        const useWl    = document.getElementById('syncUseWatchlist').checked;
+        const errEl    = document.getElementById('inputError');
+        errEl.style.display = 'none';
+
+        if (!csvInput.files.length && !idsText && !useWl) {
+            errEl.textContent = '請上傳 CSV、貼上 IMDb ID 或勾選使用 Watchlist';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('csrfmiddlewaretoken', getCsrf());
+        if (csvInput.files.length) {
+            fd.append('csv_file', csvInput.files[0]);
+        } else if (idsText) {
+            fd.append('ids', idsText);
+        } else {
+            fd.append('use_watchlist', '1');
+        }
+        if (document.getElementById('syncForceStars').checked) fd.append('force_stars', '1');
+        if (document.getElementById('syncNewOnly').checked)    fd.append('new_only', '1');
+        if (document.getElementById('syncSmartScan').checked)  fd.append('smart_scan', '1');
+
+        closeInputModal();
+        _openProgressModal();
+
+        fetch(_syncUrl, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) {
+                    _setError('同步失敗', d.error);
+                    return;
+                }
+                document.getElementById('syncProgressText').textContent = '共 ' + d.total + ' 筆，同步中...';
+                _pollStatus(d.job_id);
+            })
+            .catch(e => {
+                document.getElementById('syncProgressText').textContent = '請求失敗：' + e;
+                document.getElementById('syncCloseBtn').style.display = 'inline-block';
+            });
+    };
+
+    window.startImdbSync = function (url) {
+        _openProgressModal();
+        fetch(url, { method: 'POST', headers: { 'X-CSRFToken': getCsrf() } })
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) {
+                    _setError('同步失敗', d.error);
+                    return;
+                }
+                document.getElementById('syncProgressText').textContent = '共 ' + d.total + ' 筆，同步中...';
+                _pollStatus(d.job_id);
+            })
+            .catch(e => {
+                document.getElementById('syncProgressText').textContent = '請求失敗：' + e;
+                document.getElementById('syncCloseBtn').style.display = 'inline-block';
+            });
+    };
+
+    function _openProgressModal() {
+        document.getElementById('imdbSyncOverlay').style.display = 'flex';
+        document.getElementById('syncProgressBar').style.cssText = 'height:100%;width:0%;background:#7caac5;transition:width 0.4s ease;border-radius:6px;';
+        document.getElementById('syncProgressText').textContent = '正在連接...';
+        document.getElementById('syncModalTitle').textContent = 'IMDb 同步中...';
+        document.getElementById('syncStatusBadge').textContent = '執行中';
+        document.getElementById('syncStatusBadge').style.cssText = 'font-size:0.8rem;padding:3px 10px;border-radius:12px;background:#1a3a4a;color:#7caac5;';
+        document.getElementById('syncLog').style.display = 'none';
+        document.getElementById('syncLog').textContent = '';
+        document.getElementById('syncCloseBtn').style.display = 'none';
+    }
+
+    function _setError(title, msg) {
+        document.getElementById('syncProgressText').textContent = '錯誤：' + msg;
+        document.getElementById('syncModalTitle').textContent = title;
+        document.getElementById('syncStatusBadge').textContent = '錯誤';
+        document.getElementById('syncStatusBadge').style.cssText = 'font-size:0.8rem;padding:3px 10px;border-radius:12px;background:#4a1a1a;color:#e05c5c;';
+        document.getElementById('syncCloseBtn').style.display = 'inline-block';
+    }
+
+    window.closeSyncModal = function () {
+        document.getElementById('imdbSyncOverlay').style.display = 'none';
+    };
+
+    function _pollStatus(jobId) {
+        const url = '/admin/ani/ani/imdb_sync_status/' + jobId + '/';
+
+        function poll() {
+            fetch(url)
+                .then(r => r.json())
+                .then(d => {
+                    const pct = d.pct || 0;
+                    document.getElementById('syncProgressBar').style.width = pct + '%';
+                    document.getElementById('syncProgressText').textContent =
+                        d.progress + ' / ' + d.total + '（' + pct + '%）';
+
+                    if (d.log) {
+                        const logEl = document.getElementById('syncLog');
+                        logEl.style.display = 'block';
+                        logEl.textContent = d.log;
+                        logEl.scrollTop = logEl.scrollHeight;
+                    }
+
+                    if (d.status === 'DONE') {
+                        document.getElementById('syncModalTitle').textContent = '同步完成';
+                        document.getElementById('syncStatusBadge').textContent = '完成';
+                        document.getElementById('syncStatusBadge').style.cssText = 'font-size:0.8rem;padding:3px 10px;border-radius:12px;background:#1a3a2a;color:#6aad8a;';
+                        document.getElementById('syncProgressBar').style.background = '#6aad8a';
+                        document.getElementById('syncCloseBtn').style.display = 'inline-block';
+                    } else if (d.status === 'ERROR') {
+                        document.getElementById('syncModalTitle').textContent = '同步錯誤';
+                        document.getElementById('syncStatusBadge').textContent = '錯誤';
+                        document.getElementById('syncStatusBadge').style.cssText = 'font-size:0.8rem;padding:3px 10px;border-radius:12px;background:#4a1a1a;color:#e05c5c;';
+                        document.getElementById('syncProgressBar').style.background = '#dc3545';
+                        document.getElementById('syncCloseBtn').style.display = 'inline-block';
+                    } else {
+                        setTimeout(poll, 2000);
+                    }
+                })
+                .catch(() => setTimeout(poll, 3000));
+        }
+
+        poll();
+    }
+})();
+</script>

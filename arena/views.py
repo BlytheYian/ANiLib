@@ -1,3 +1,4 @@
 from django.shortcuts import render
 
-# Create your views here.
+def arena(request):
+    return render(request, 'arena/arena.html')

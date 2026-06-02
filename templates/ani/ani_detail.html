@@ -1,15 +1,14 @@
 {% extends "navbar.html" %}
+{% load static %}
 
 {% block title %}{{ ani.title }} | ANiLib{% endblock %}
 
 {% block content %}
-<div class="position-relative overflow-hidden d-flex flex-column" style="min-height: calc(100vh - 56px); display: flex; flex-direction: column;">
-    
-    <div class="position-absolute top-0 start-0 w-100 h-100" 
+<div class="position-relative overflow-hidden d-flex flex-column" style="min-height: calc(100vh - 56px);">
+
+    <div class="position-absolute top-0 start-0 w-100 h-100"
          style="
-            background: #333 url('{% if ani.banner %}{{ ani.banner.url }}{% elif ani.poster %}{{ ani.poster.url }}{% endif %}') center/cover no-repeat; 
-            background-size: cover; 
-            background-position: center; 
+            background: #333 url('{% if ani.banner %}{{ ani.banner.url }}{% elif ani.poster %}{{ ani.poster.url }}{% endif %}') center/cover no-repeat;
             filter: blur(15px) brightness(0.8);
             transform: scale(1.1);
             z-index: 0;
@@ -17,7 +16,7 @@
     </div>
 
     <div class="container position-relative bg-body shadow-lg p-4 p-md-5 mb-0 flex-grow-1" style="z-index: 1;">
-        
+
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="{% url 'ani_index' %}" class="breadcrumb-link text-decoration-none">首頁</a></li>
@@ -28,17 +27,23 @@
             </ol>
         </nav>
 
+        {# ── 主資訊區塊 ── #}
         <div class="row">
             <div class="col-md-4 mb-4 mb-md-0 d-flex flex-column align-items-center align-items-md-start">
                 <div class="position-relative d-inline-block w-100" style="max-width: 280px;">
                     {% if ani.poster %}
-                        <img src="{{ ani.poster.url }}" class="img-fluid rounded shadow object-fit-cover w-100" style="max-height: 420px; aspect-ratio: 24 / 40;" loading="lazy" alt="{{ ani.title }} 海報">
+                        <img src="{{ ani.poster.url }}"
+                             class="img-fluid rounded shadow object-fit-cover w-100"
+                             style="max-height: 65vh; aspect-ratio: 24 / 40;"
+                             loading="lazy"
+                             alt="{{ ani.title }} 海報"
+                             onerror="this.replaceWith(document.getElementById('no-poster-tpl').content.cloneNode(true))">
                     {% else %}
-                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow w-100" style="height: 420px; aspect-ratio: 24 / 40;">
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded shadow w-100" style="height: 65vh; aspect-ratio: 24 / 40;">
                             <span class="fs-4 text-center">暫無圖片<br>(No Image)</span>
                         </div>
                     {% endif %}
-                    
+
                     <button class="follow-heart-btn {% if user in ani.followers.all %}is-following{% endif %}" data-animation-id="{{ ani.id }}">
                         <i class="bi {% if user in ani.followers.all %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
                     </button>
@@ -50,45 +55,49 @@
                     <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
                 </h1>
 
-                <div id="alt-titles-inline" class="text-muted mb-2 small"
+                <div id="alt-titles-inline" class="text-muted mb-1 small"
                     data-en="{{ ani.title }}"
                     data-ch="{{ ani.title_ch|default:'' }}"
                     data-zh="{{ ani.title_zh|default:'' }}">
                 </div>
 
-                <h6 class="text-muted">
-                {% if ani.tags.all %}
-                        {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %} / {% endif %}{% endfor %}
+                {% with aliases=ani.aliases.all %}
+                {% if aliases %}
+                <div class="text-muted mb-3" style="font-size:0.8rem;">
+                    <span class="fw-semibold">別名：</span>
+                    {% for alias in aliases %}
+                        {{ alias.title }}{% if alias.source %}<span class="opacity-50">（{{ alias.source }}）</span>{% endif %}{% if not forloop.last %} / {% endif %}
+                    {% endfor %}
+                </div>
                 {% endif %}
-                </h6>
-                <h6 class="text-muted mb-4">
+                {% endwith %}
+
+                <h6 class="text-muted mt-3" style="font-size:0.9rem;">
                     {{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span>
                 </h6>
+                
+                <h6 class="text-muted mb-2" style="font-size:0.8rem;">
+                    {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %} / {% endif %}{% endfor %}
+                </h6>
 
-                <div class="mb-4 text-body">
+                <div class="mb-4 text-body" style="font-size:0.9rem;">
                     {% if ani.creators.all %}
                     <div class="mb-2">
-                        <span class="fw-bold text-secondary me-2"> 主創：</span>
-                        <span>
-                            {% for creator in ani.creators.all %}{{ creator.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
-                        </span>
+                        <span class="fw-bold text-secondary me-2">主創：</span>
+                        {% for creator in ani.creators.all %}{{ creator.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
                     </div>
                     {% endif %}
-
                     {% if ani.studio.all %}
                     <div class="mb-2">
-                        <span class="fw-bold text-secondary me-2"> 製作：</span>
-                        <span>
-                            {% for s in ani.studio.all %}{{ s.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
-                        </span>
+                        <span class="fw-bold text-secondary me-2">製作：</span>
+                        {% for s in ani.studio.all %}{{ s.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
                     </div>
                     {% endif %}
                 </div>
 
                 <hr>
-
-                <h5 class="fw-bold mt-4">劇情簡介</h5>
-                <div class="fs-5 text-secondary" style="line-height: 1.8;">
+                <h5 class="fw-bold mt-4" style="font-size:1.15rem;">劇情簡介</h5>
+                <div class="text-secondary" style="line-height: 1.8; font-size:0.9rem;">
                     {% if ani.description %}
                         {{ ani.description|linebreaks }}
                     {% else %}
@@ -97,8 +106,120 @@
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+
+{# ── 評分觸發按鈕（右側固定 tab） ── #}
+<button id="rating-trigger"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#ratingOffcanvas"
+        aria-controls="ratingOffcanvas">
+    <i class="bi bi-star-fill d-block mb-1" style="font-size:1rem;"></i>
+    <span id="trigger-label" style="font-size:0.9rem; writing-mode:vertical-rl; letter-spacing:2px;">
+        {% if user_review.score %}{{ user_review.score }}分{% else %}評分{% endif %}
+    </span>
+</button>
+
+{# ── 評分 Offcanvas ── #}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="ratingOffcanvas" style="width:300px;">
+    <div class="offcanvas-header border-bottom">
+        <h6 class="offcanvas-title fw-bold mb-0">評分與評論</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column gap-3 pt-3" style="overflow-y:auto;">
+
+        <div>
+            <div id="rating-summary" class="fw-bold fs-5">
+                {% if avg_rating %}
+                    <span style="color:#ffc107;">★</span> {{ avg_rating }} <span class="fw-normal text-muted" style="font-size:0.8rem;">/ 10 &nbsp;</span><span class="fw-normal text-muted" style="font-size:0.7rem;">({{ rating_count }})</span>
+                {% else %}
+                    <span class="text-muted fw-normal small">尚無評分</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 我的評分與評論 -->
+        <div class="border-top pt-2">
+            {% if user.is_authenticated %}
+
+            <!-- 顯示模式 -->
+            <div id="my-review-display"
+                 class="p-2 rounded"
+                 style="background:rgba(124,170,197,0.12); border:1px solid rgba(124,170,197,0.35); cursor:pointer; {% if not user_review.score and not user_review.text %}display:none;{% endif %}"
+                 title="點擊編輯">
+                <div class="d-flex align-items-center gap-2 mb-1" style="font-size:0.85rem;">
+                    <span id="display-score">
+                        {% if user_review.score %}<span style="color:#ffc107;">★</span><span style="color:#888;"> {{ user_review.score }}/10</span>{% endif %}
+                    </span>
+                    <span class="text-muted ms-auto" style="font-size:0.68rem;">點擊編輯</span>
+                </div>
+                <div id="display-text" style="font-size:0.82rem; white-space:pre-wrap;">{{ user_review.text|default:'' }}</div>
+            </div>
+
+            <!-- 編輯模式 -->
+            <div id="my-review-edit" {% if user_review.score or user_review.text %}style="display:none;"{% endif %}>
+                <div class="d-flex align-items-center gap-1 mb-1" id="star-rating"
+                     data-current="{{ user_review.score|default:0 }}"
+                     data-pk="{{ ani.pk }}">
+                    <span class="star-slot" data-half="1" data-full="2"><i class="bi bi-star star-icon"></i><span class="star-zone left"></span><span class="star-zone right"></span></span>
+                    <span class="star-slot" data-half="3" data-full="4"><i class="bi bi-star star-icon"></i><span class="star-zone left"></span><span class="star-zone right"></span></span>
+                    <span class="star-slot" data-half="5" data-full="6"><i class="bi bi-star star-icon"></i><span class="star-zone left"></span><span class="star-zone right"></span></span>
+                    <span class="star-slot" data-half="7" data-full="8"><i class="bi bi-star star-icon"></i><span class="star-zone left"></span><span class="star-zone right"></span></span>
+                    <span class="star-slot" data-half="9" data-full="10"><i class="bi bi-star star-icon"></i><span class="star-zone left"></span><span class="star-zone right"></span></span>
+                </div>
+                <span id="staged-label" class="text-muted small d-block mb-2">
+                    {% if user_review.score %}已評 {{ user_review.score }} 分{% else %}尚未評分{% endif %}
+                </span>
+                <textarea id="comment-input" class="form-control form-control-sm mb-1" rows="3"
+                          placeholder="分享你的想法……（最多 200 字）">{{ user_review.text|default:'' }}</textarea>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span id="char-count" class="text-muted" style="font-size:0.7rem;">0 / 200</span>
+                    <button id="cancel-edit" class="btn btn-sm btn-link text-muted p-0" style="font-size:0.75rem; display:none;">取消</button>
+                </div>
+                <button id="panel-submit" class="btn btn-sm w-100 mb-1" style="background:#7caac5;color:#fff;">送出</button>
+            </div>
+
+            {% else %}
+            <div class="text-muted small">登入後可評分與評論</div>
+            {% endif %}
+        </div>
+
+        <!-- 所有評論 -->
+        <div class="border-top pt-2 flex-grow-1 d-flex flex-column" style="min-height:0;">
+            <div class="fw-semibold small mb-2">所有評論</div>
+            <div id="comments-list" style="overflow-y:auto; flex:1;">
+                {% for review in other_reviews %}
+                <div class="d-flex gap-2 mb-2 comment-item" data-user="{{ review.user.username }}">
+                    <img src="{% static 'images/avatars/' %}{{ review.user.avatar|default:'avatar_default.png' }}"
+                         class="rounded-circle flex-shrink-0"
+                         style="width:26px;height:26px;object-fit:cover;"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+                         alt="">
+                    <div class="flex-shrink-0 rounded-circle bg-secondary text-white align-items-center justify-content-center fw-bold"
+                         style="width:26px;height:26px;font-size:0.7rem;display:none;">
+                        {{ review.user.username|slice:":1"|upper }}
+                    </div>
+                    <div class="flex-grow-1" style="font-size:0.82rem;">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="fw-semibold">{{ review.user.username }}</span>
+                            {% if review.score %}
+                            <span style="color:#ffc107; margin-right:-7px;">★</span><span style="color:#888;"> {{ review.score }}/10</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-body comment-text" style="white-space:pre-wrap;">{{ review.text }}</div>
+                        <div class="text-muted" style="font-size:0.68rem;">{{ review.updated_at|date:"Y/m/d H:i" }}</div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-muted small" id="no-comments">還沒有人評論</div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
 <style>
     .bg-body {
         background-color: rgba(var(--bs-body-bg-rgb), 0.9) !important;
@@ -107,112 +228,240 @@
         color: #7caac5 !important;
         font-weight: bold;
     }
-        
-        .follow-heart-btn {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.4);
-            border: none;
-            border-radius: 50%;
-            width: 42px;
-            height: 42px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 1.3rem;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            backdrop-filter: blur(2px);
-        }
-        .follow-heart-btn:hover {
-            transform: scale(1.15);
-            background: rgba(0, 0, 0, 0.6);
-        }
-        .follow-heart-btn.is-following {
-            color: #ff6d7c;
-        }
+    .follow-heart-btn {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        z-index: 10;
+        background: rgba(0,0,0,0.4);
+        border: none;
+        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.3rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        backdrop-filter: blur(2px);
+    }
+    .follow-heart-btn:hover { transform: scale(1.15); background: rgba(0,0,0,0.6); }
+    .follow-heart-btn.is-following { color: #ff6d7c; }
+
+    /* 星星 */
+    .star-slot {
+        position: relative;
+        display: inline-block;
+        font-size: 1.7rem;
+        line-height: 1;
+        cursor: pointer;
+        color: #ccc;
+    }
+    .star-slot .star-icon { pointer-events: none; transition: color 0.1s; }
+    .star-slot .star-icon.bi-star-fill,
+    .star-slot .star-icon.bi-star-half { color: #ffc107; }
+    .star-zone {
+        position: absolute;
+        top: 0; height: 100%; width: 50%;
+        cursor: pointer;
+    }
+    .star-zone.left  { left: 0; }
+    .star-zone.right { right: 0; }
+
+    /* 評分觸發 tab */
+    #rating-trigger {
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #7caac5;
+        color: #fff;
+        border: none;
+        border-radius: 8px 0 0 8px;
+        padding: 12px 10px;
+        z-index: 1040;
+        cursor: pointer;
+        box-shadow: -2px 2px 8px rgba(0,0,0,0.2);
+        transition: background 0.15s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    #rating-trigger:hover { background: #6b9ab5; }
+
+    /* 評論輸入 */
+    #comment-input:focus { border-color: #7caac5; box-shadow: 0 0 0 .2rem rgba(124,170,197,.25); }
 </style>
 
 <script>
-    function updateAltTitles(lang) {
-        const container = document.getElementById('alt-titles-inline');
-        if (!container) return;
-        const vals = { en: container.dataset.en, zh: container.dataset.zh, ch: container.dataset.ch };
-        const labels = { en: 'EN', zh: 'ZH', ch: 'CH' };
-        const currentHasValue = !!vals[lang];
-        const parts = [];
-        for (const key of ['en', 'zh', 'ch']) {
-            if (key === lang) continue;
-            if (!vals[key]) continue;
-            if (key === 'en' && !currentHasValue) continue;
-            parts.push(`<strong>${labels[key]}</strong>: ${vals[key]}`);
-        }
-        container.innerHTML = parts.join(' / ');
-        container.classList.toggle('d-none', parts.length === 0);
+(function () {
+    function getCookie(name) {
+        const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
     }
 
-    document.addEventListener('langchange', (e) => updateAltTitles(e.detail.lang));
-    document.addEventListener('DOMContentLoaded', () => {
-        updateAltTitles(localStorage.getItem('site_lang') || 'zh');
-    });
+    // ── 星星評分 ──
+    const ratingEl      = document.getElementById('star-rating');
+    const summary       = document.getElementById('rating-summary');
+    const myReviewDisp  = document.getElementById('my-review-display');
+    const myReviewEdit  = document.getElementById('my-review-edit');
+    const cancelEdit    = document.getElementById('cancel-edit');
+    const isAuth        = {{ user.is_authenticated|yesno:'true,false' }};
+    const ratePk        = ratingEl ? ratingEl.dataset.pk : null;
+    let   current       = ratingEl ? +ratingEl.dataset.current : 0;
+    let   savedText     = '{{ user_review.text|default:""|escapejs }}';
 
+    function renderStars(score, target) {
+        (target || ratingEl).querySelectorAll('.star-slot').forEach((slot, i) => {
+            const icon = slot.querySelector('.star-icon');
+            const full = 2 * (i + 1);
+            const half = full - 1;
+            icon.className = 'bi star-icon ' + (score >= full ? 'bi-star-fill' : score >= half ? 'bi-star-half' : 'bi-star');
+        });
+    }
+
+    function enterEditMode() {
+        if (myReviewDisp) myReviewDisp.style.display = 'none';
+        if (myReviewEdit) myReviewEdit.style.display = '';
+        if (cancelEdit)   cancelEdit.style.display = '';
+        renderStars(current);
+        if (stagedLabel) stagedLabel.textContent = current ? `已評 ${current} 分` : '尚未評分';
+        if (textarea)    textarea.value = savedText;
+        if (charCount)   { const l = savedText.length; charCount.textContent = `${l} / 200`; charCount.classList.toggle('text-danger', l > 200); }
+        staged = 0;
+    }
+
+    function enterDisplayMode(score, text) {
+        const dispScore = document.getElementById('display-score');
+        const dispText  = document.getElementById('display-text');
+        if (dispScore) dispScore.innerHTML = score ? `<span style="color:#ffc107;">★</span><span style="color:#888;"> ${score}/10</span>` : '';
+        if (dispText)  dispText.textContent = text;
+        if (myReviewDisp) myReviewDisp.style.display = '';
+        if (myReviewEdit) myReviewEdit.style.display = 'none';
+        if (cancelEdit)   cancelEdit.style.display = 'none';
+    }
+
+    if (myReviewDisp) myReviewDisp.addEventListener('click', enterEditMode);
+
+    const stagedLabel  = document.getElementById('staged-label');
+    const triggerLabel = document.getElementById('trigger-label');
+    const textarea     = document.getElementById('comment-input');
+    const charCount    = document.getElementById('char-count');
+    const panelSubmit  = document.getElementById('panel-submit');
+    let   staged = 0;
+
+    if (ratingEl) {
+        renderStars(current);
+        ratingEl.querySelectorAll('.star-zone').forEach(zone => {
+            const slot  = zone.closest('.star-slot');
+            const score = zone.classList.contains('left') ? +slot.dataset.half : +slot.dataset.full;
+            zone.addEventListener('mouseenter', () => renderStars(score));
+            zone.addEventListener('mouseleave', () => renderStars(staged || current));
+            zone.addEventListener('click', () => {
+                if (!isAuth) { alert('請先登入才能評分！'); return; }
+                staged = score;
+                renderStars(staged);
+                if (stagedLabel) stagedLabel.textContent = `選擇了 ${staged} 分`;
+            });
+        });
+    }
+
+    if (textarea) {
+        const updateCount = () => {
+            const len = textarea.value.length;
+            charCount.textContent = `${len} / 200`;
+            charCount.classList.toggle('text-danger', len > 200);
+        };
+        textarea.addEventListener('input', updateCount);
+        updateCount();
+    }
+
+    if (cancelEdit) {
+        cancelEdit.addEventListener('click', () => {
+            if (current || savedText) {
+                enterDisplayMode(current, savedText);
+            } else {
+                if (myReviewDisp) myReviewDisp.style.display = 'none';
+                if (cancelEdit)   cancelEdit.style.display = 'none';
+            }
+        });
+    }
+
+    if (panelSubmit) {
+        panelSubmit.addEventListener('click', async () => {
+            const text = textarea ? textarea.value.trim() : '';
+            if (text.length > 200) return;
+
+            const csrf = getCookie('csrftoken');
+            const headers = { 'Content-Type': 'application/json', 'X-CSRFToken': csrf };
+
+            const data = await fetch(`/ani/${ratePk}/review/`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ score: staged || null, text })
+            }).then(r => r.ok ? r.json() : null);
+
+            if (!data) return;
+
+            if (data.score) {
+                current = data.score;
+                staged  = 0;
+                if (triggerLabel) triggerLabel.textContent = `${current}分`;
+            }
+            if (data.avg != null) {
+                summary.innerHTML = `<span style="color:#ffc107;">★</span> ${data.avg} <span class="fw-normal text-muted" style="font-size:0.8rem;">/ 10 &nbsp;</span><span class="fw-normal text-muted" style="font-size:0.7rem;">(${data.count})</span>`;
+            }
+
+            savedText = text;
+            if (current || text) {
+                enterDisplayMode(current, text);
+            }
+        });
+    }
+
+    // ── 追番心 ──
     document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('click', async (e) => {
             const btn = e.target.closest('.follow-heart-btn');
             if (!btn) return;
-
-            e.preventDefault(); 
+            e.preventDefault();
             e.stopPropagation();
-
             const animationId = btn.getAttribute('data-animation-id');
             if (!animationId) return;
-
             const isFollowing = btn.classList.contains('is-following');
             const action = isFollowing ? 'unfollow' : 'follow';
-
-            try {
-                const response = await fetch('/accounts/follow/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({ animation_id: animationId, action: action })
-                });
-
-                if (response.ok) {
-                    if (isFollowing) {
-                        btn.classList.remove('is-following');
-                        btn.innerHTML = '<i class="bi bi-heart"></i>';
-                    } else {
-                        btn.classList.add('is-following');
-                        btn.innerHTML = '<i class="bi bi-heart-fill"></i>';
-                    }
-                } else if (response.status === 401 || response.status === 403) {
-                    alert('請先登入才能收藏動畫喔！');
-                }
-            } catch (error) {
-                console.error('更新收藏狀態失敗', error);
+            const resp = await fetch('/accounts/follow/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ animation_id: animationId, action })
+            });
+            if (resp.ok) {
+                btn.classList.toggle('is-following', !isFollowing);
+                btn.innerHTML = `<i class="bi ${!isFollowing ? 'bi-heart-fill' : 'bi-heart'}"></i>`;
+            } else if (resp.status === 401 || resp.status === 403) {
+                alert('請先登入才能收藏動畫喔！');
             }
         });
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
     });
+
+    // ── 副標題語言切換 ──
+    function updateAltTitles(lang) {
+        const c = document.getElementById('alt-titles-inline');
+        if (!c) return;
+        const v = { en: c.dataset.en, zh: c.dataset.zh, ch: c.dataset.ch };
+        const labels = { en: 'EN', zh: 'ZH', ch: 'CH' };
+        const displayed = v[lang] ? lang : 'en';  // 實際顯示的語言（有可能 fallback 到 en）
+        const parts = [];
+        for (const k of ['en', 'zh', 'ch']) {
+            if (k === displayed || !v[k]) continue;
+            parts.push(`<strong>${labels[k]}</strong>: ${v[k]}`);
+        }
+        c.innerHTML = parts.join(' / ');
+        c.classList.toggle('d-none', parts.length === 0);
+    }
+    document.addEventListener('langchange', e => updateAltTitles(e.detail.lang));
+    document.addEventListener('DOMContentLoaded', () => updateAltTitles(localStorage.getItem('site_lang') || 'zh'));
+})();
 </script>
 {% endblock %}

@@ -77,8 +77,8 @@
 
         #scrollToTopBtn {
             position: fixed;
-            bottom: 30px;
-            right: 30px;
+            bottom: 3.5vh;
+            right: 2vw;
             width: 50px;
             height: 50px;
             background-color: #4a4a4a;
@@ -109,9 +109,12 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
                     <li class="nav-item">
-                        <a class="nav-link fw-bold px-lg-3" href="{% url 'ani_lib' %}">動畫庫</a>
+                        <a class="nav-link fw-bold px-lg-2" href="{% url 'ani_lib' %}">動畫庫</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold px-lg-2" href="{% url 'arena' %}">格鬥場</a>
                     </li>
                 </ul>
 
