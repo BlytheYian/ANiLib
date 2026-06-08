@@ -35,6 +35,10 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = []
 
+# 正式環境（DEBUG=False）下強制 cookie 只透過 HTTPS 傳送，避免被明文攔截
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
 
 # Application definition
 
@@ -54,6 +58,7 @@ INSTALLED_APPS = [
     "ani",
     "accounts",
     "arena",
+    "agora",
 ]
 
 MIDDLEWARE = [

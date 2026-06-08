@@ -178,7 +178,7 @@ def download_poster(url, imdb_id):
 
 def _sync_entry_db(data, zh_title, force_stars=True):
     """同步一筆動畫到資料庫，回傳 log 訊息。"""
-    from .models import Ani, Creator
+    from .models import Ani, Person
 
     imdb_id = data.get('imdb_id')
     ani = Ani.objects.filter(IMDb_ID=imdb_id).first()
@@ -222,8 +222,8 @@ def _sync_entry_db(data, zh_title, force_stars=True):
 
     if data.get('creators') and not ani.creators.exists():
         for name in data['creators']:
-            creator, _ = Creator.objects.get_or_create(name=name)
-            ani.creators.add(creator)
+            person, _ = Person.objects.get_or_create(name=name)
+            ani.creators.add(person)
         filled.append('創作者')
 
     if data.get('description') and not ani.description:

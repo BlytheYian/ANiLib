@@ -1,0 +1,28 @@
+<div class="agora-sidebar-fixed d-none d-xl-block">
+    <div class="agora-sidebar-card p-3">
+        <h6 class="text-muted small fw-bold text-uppercase mb-2 px-1">
+            <i class="bi bi-star-fill"></i> 已收藏看板
+        </h6>
+        {% if my_boards %}
+        <div class="agora-sidebar-list hide-scrollbar d-flex flex-column gap-1">
+            {% for b in my_boards %}
+            {% with cover_ani=b.anis.all.0 %}
+            <a href="{% url 'agora_board' b.pk %}"
+               class="agora-sidebar-item d-flex align-items-center gap-2 text-decoration-none px-2 py-2 {% if board and board.pk == b.pk %}active{% endif %}">
+                {% if cover_ani.poster %}
+                <img src="{{ cover_ani.poster_thumbnail.url }}" class="agora-sidebar-item-cover rounded-2 object-fit-cover flex-shrink-0" loading="lazy" alt="{{ b.name }}">
+                {% else %}
+                <div class="agora-sidebar-item-cover agora-board-block-fallback rounded-2 d-flex align-items-center justify-content-center flex-shrink-0">
+                    <i class="bi bi-image small px-5"></i>
+                </div>
+                {% endif %}
+                <span class="text-truncate flex-grow-1 ani-title" data-en="{{ b.name }}" data-zh="{{ b.name_zh|default:b.name }}" data-ch="{{ b.name_ch|default:b.name }}">{{ b.name }}</span>
+            </a>
+            {% endwith %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small px-1 mb-0">尚未收藏任何看板</p>
+        {% endif %}
+    </div>
+</div>

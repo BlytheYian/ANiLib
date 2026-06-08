@@ -1,7 +1,33 @@
+import os
+import re
 from django.db import models
 from django.conf import settings
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFit
+
+
+def _char_image_path(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()
+    safe_name = re.sub(r'[\\/:*?"<>|]', '_', instance.name)
+    return f'characters/{instance.ani_id}_{safe_name}{ext}'
+
+
+_YOUTUBE_RE = re.compile(
+    r'(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{6,})'
+)
+_BILIBILI_RE = re.compile(r'bilibili\.com/video/(BV[A-Za-z0-9]+)')
+
+
+def _video_embed_url(url):
+    if not url:
+        return None
+    m = _YOUTUBE_RE.search(url)
+    if m:
+        return f'https://www.youtube.com/embed/{m.group(1)}'
+    m = _BILIBILI_RE.search(url)
+    if m:
+        return f'https://player.bilibili.com/player.html?bvid={m.group(1)}&autoplay=0'
+    return None
 
 class Tag(models.Model):
     tag_name = models.CharField(max_length=50, verbose_name="標籤名稱")
@@ -13,12 +39,12 @@ class Tag(models.Model):
     def __str__(self):
         return self.tag_name
 
-class Creator(models.Model):
+class Person(models.Model):
     name = models.CharField(max_length=100, verbose_name="名稱")
-    
+
     class Meta:
-        verbose_name = "創作者"
-        verbose_name_plural = "創作者庫"
+        verbose_name = "人員"
+        verbose_name_plural = "人員庫"
 
     def __str__(self):
         return self.name
@@ -34,6 +60,20 @@ class Studio(models.Model):
     def __str__(self):
         return self.name
     
+class Series(models.Model):
+    name = models.CharField(max_length=200, verbose_name="系列名稱")
+    name_zh = models.CharField(max_length=200, blank=True, null=True, verbose_name="繁中名稱")
+    name_ch = models.CharField(max_length=200, blank=True, null=True, verbose_name="簡中名稱")
+    description = models.TextField(blank=True, null=True, verbose_name="系列簡介")
+
+    class Meta:
+        verbose_name = "系列"
+        verbose_name_plural = "系列庫"
+
+    def __str__(self):
+        return self.name
+
+
 class Ani(models.Model):
     title = models.CharField(max_length=200, verbose_name="英文標題")
     title_ch = models.CharField(max_length=200, blank=True, null=True, verbose_name="簡中標題")
@@ -77,16 +117,75 @@ class Ani(models.Model):
     rating = models.CharField(max_length=50, blank=True, null=True, verbose_name="分級")
     
     description = models.TextField(blank=True, null=True, verbose_name="簡介")
+    trivia      = models.TextField(blank=True, null=True, verbose_name="瑣事")
+    videos      = models.TextField(
+        blank=True, null=True, verbose_name="影片",
+        help_text="每行一個 YouTube 或 Bilibili 連結，可選擇用「|」加上標題，例如：https://youtu.be/xxxx | PV預告"
+    )
     
-    studio = models.ManyToManyField(Studio, blank=True, verbose_name="工作室/公司")
-    tags = models.ManyToManyField(Tag, blank=True, verbose_name="標籤")
-    creators = models.ManyToManyField(Creator, blank=True, verbose_name="創作者")
-    
+    studio   = models.ManyToManyField(Studio, blank=True, verbose_name="工作室/公司")
+    tags     = models.ManyToManyField(Tag, blank=True, verbose_name="標籤")
+    creators = models.ManyToManyField('Person', blank=True, related_name='creator_of', verbose_name="主創")
+    series   = models.ForeignKey(
+        Series, blank=True, null=True, on_delete=models.SET_NULL,
+        related_name='works', verbose_name="所屬系列"
+    )
+
     class Meta:
         verbose_name = "動畫"
         verbose_name_plural = "動畫庫"
+
     def __str__(self):
         return self.title
+
+    @property
+    def series_name(self):
+        return self.series.name if self.series else self.title
+
+    @property
+    def series_name_zh(self):
+        return self.series.name_zh if self.series else self.title_zh
+
+    @property
+    def series_name_ch(self):
+        return self.series.name_ch if self.series else self.title_ch
+
+    @property
+    def video_embeds(self):
+        embeds = []
+        for line in (self.videos or '').splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            url, _, title = line.partition('|')
+            embed_url = _video_embed_url(url.strip())
+            if embed_url:
+                embeds.append({'embed_url': embed_url, 'title': title.strip()})
+        return embeds
+
+
+class Character(models.Model):
+    ani      = models.ForeignKey(Ani, on_delete=models.CASCADE, related_name='characters')
+    name     = models.CharField(max_length=100, verbose_name="名稱")
+    name_zh  = models.CharField(max_length=100, blank=True, null=True, verbose_name="中文名稱")
+    description = models.TextField(blank=True, null=True, verbose_name="描述")
+    image         = models.ImageField(upload_to=_char_image_path, blank=True, null=True, verbose_name="圖片")
+    image_focus_x = models.FloatField(default=50.0, verbose_name="圖片焦點 X%")
+    image_focus_y = models.FloatField(default=20.0, verbose_name="圖片焦點 Y%")
+    image_scale   = models.FloatField(default=1.0,  verbose_name="圖片縮放倍率")
+    va       = models.ForeignKey(Person, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='characters_voiced', verbose_name="聲優")
+    order    = models.PositiveSmallIntegerField(default=0, verbose_name="排序")
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = "角色"
+        verbose_name_plural = "角色庫"
+
+    def __str__(self):
+        return f"{self.ani.title} — {self.name}"
+
+
 
 class AniAlias(models.Model):
     ani = models.ForeignKey(Ani, on_delete=models.CASCADE, related_name='aliases')
@@ -99,6 +198,7 @@ class AniAlias(models.Model):
 
     def __str__(self):
         return f"{self.ani.title} - {self.title}"
+
 
 class SyncJob(models.Model):
     class Status(models.TextChoices):

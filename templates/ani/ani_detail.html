@@ -1,10 +1,10 @@
 {% extends "navbar.html" %}
-{% load static %}
+{% load static ani_extras %}
 
 {% block title %}{{ ani.title }} | ANiLib{% endblock %}
 
 {% block content %}
-<div class="position-relative overflow-hidden d-flex flex-column" style="min-height: calc(100vh - 56px);">
+<div class="position-relative overflow-hidden d-flex flex-column" style="min-height: calc(100vh - 57px);">
 
     <div class="position-absolute top-0 start-0 w-100 h-100"
          style="
@@ -27,9 +27,10 @@
             </ol>
         </nav>
 
-        {# ── 主資訊區塊 ── #}
-        <div class="row">
-            <div class="col-md-4 mb-4 mb-md-0 d-flex flex-column align-items-center align-items-md-start">
+        <div class="row align-items-start">
+
+            <div class="col-md-4 mb-4 mb-md-0 d-flex flex-column align-items-center align-items-md-start"
+                 style="position: sticky; top: 72px;">
                 <div class="position-relative d-inline-block w-100" style="max-width: 280px;">
                     {% if ani.poster %}
                         <img src="{{ ani.poster.url }}"
@@ -43,7 +44,6 @@
                             <span class="fs-4 text-center">暫無圖片<br>(No Image)</span>
                         </div>
                     {% endif %}
-
                     <button class="follow-heart-btn {% if user in ani.followers.all %}is-following{% endif %}" data-animation-id="{{ ani.id }}">
                         <i class="bi {% if user in ani.followers.all %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
                     </button>
@@ -51,61 +51,118 @@
             </div>
 
             <div class="col-md-8">
-                <h1 class="display-5 fw-bold mb-1">
-                    <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
-                </h1>
 
-                <div id="alt-titles-inline" class="text-muted mb-1 small"
-                    data-en="{{ ani.title }}"
-                    data-ch="{{ ani.title_ch|default:'' }}"
-                    data-zh="{{ ani.title_zh|default:'' }}">
+                <div id="cards-viewport" style="height: clamp(300px, 65vh, 700px); overflow-x: hidden; overflow-y: hidden;">
+                    <div id="cards-track" style="display: flex; height: 100%; will-change: transform; transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);">
+
+                        <div class="card-slide" data-label="Animation" style="min-width: 100%; height: 100%; overflow-y: auto;">
+                            <h1 class="display-5 fw-bold mb-1">
+                                <span class="ani-title" data-en="{{ ani.title }}" data-zh="{{ ani.title_zh|default:ani.title }}" data-ch="{{ ani.title_ch|default:ani.title }}">{{ ani.title }}</span>
+                            </h1>
+                            <div id="alt-titles-inline" class="text-muted mb-1 small"
+                                 data-en="{{ ani.title }}"
+                                 data-ch="{{ ani.title_ch|default:'' }}"
+                                 data-zh="{{ ani.title_zh|default:'' }}">
+                            </div>
+                            {% with aliases=ani.aliases.all %}
+                            {% if aliases %}
+                            <div class="text-muted mb-3" style="font-size:0.8rem;">
+                                <span class="fw-semibold">別名：</span>
+                                {% for alias in aliases %}
+                                    {{ alias.title }}{% if alias.source %}<span class="opacity-50">（{{ alias.source }}）</span>{% endif %}{% if not forloop.last %} / {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% endwith %}
+
+                            <h6 class="text-muted mt-1" style="font-size:0.9rem;">
+                                {{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span>
+                            </h6>
+                            <h6 class="text-muted mb-2" style="font-size:0.8rem;">
+                                {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %} / {% endif %}{% endfor %}
+                            </h6>
+
+                            <div class="mb-4 text-body" style="font-size:0.9rem;">
+                                {% if ani_creators %}
+                                <div class="mb-2">
+                                    <span class="fw-bold text-secondary me-2">主創：</span>
+                                    {% for person in ani_creators %}{{ person.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if ani.studio.all %}
+                                <div class="mb-2">
+                                    <span class="fw-bold text-secondary me-2">製作：</span>
+                                    {% for s in ani.studio.all %}{{ s.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <hr>
+                            <h5 class="fw-bold mt-4" style="font-size:1.15rem;">劇情簡介</h5>
+                            <div class="text-secondary" style="line-height: 1.8; font-size:0.9rem;">
+                                {% if ani.description %}
+                                    {{ ani.description|linebreaks }}
+                                {% else %}
+                                    <span class="text-muted">這部動畫目前還沒有詳細的簡介資料喔！</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {# ── 卡片 1：角色（有資料才渲染） ── #}
+                        {% if characters %}
+                        <div class="card-slide" data-label="Characters" style="min-width: 100%; height: 100%; overflow-y: auto;">
+                            <div id="char-banner" style="width: 100%; height: 100%;"></div>
+                            {{ char_data|json_script:"char-data" }}
+                        </div>
+                        {% endif %}
+
+                        {# ── 卡片 2：瑣事（有資料才渲染） ── #}
+                        {% if ani.trivia %}
+                        <div class="card-slide" data-label="Trivias" style="min-width: 100%; height: 100%; overflow-y: auto;">
+                            <div class="trivia-body text-secondary" style="line-height:1.8; font-size:0.9rem;">
+                                {{ ani.trivia|markdown }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {# ── 卡片 3：影片（有資料才渲染） ── #}
+                        {% with videos=ani.video_embeds %}
+                        {% if videos %}
+                        <div class="card-slide" data-label="Videos" style="min-width: 100%; height: 100%; overflow-y: auto;">
+                            {% if videos %}
+                            <div id="video-tabs" class="d-flex flex-wrap gap-1 mb-1">
+                                {% for video in videos %}
+                                <button type="button" class="video-tab-btn{% if forloop.first %} active{% endif %}"
+                                        data-embed-url="{{ video.embed_url }}"
+                                        data-title="{{ video.title|default:ani.title }}">
+                                    {{ video.title|default:"影片" }}{% if not video.title %} {{ forloop.counter }}{% endif %}
+                                </button>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="ratio ratio-16x9 rounded-4 overflow-hidden">
+                                <iframe id="video-frame"
+                                        src="{{ videos.0.embed_url }}"
+                                        title="{{ videos.0.title|default:ani.title }}"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowfullscreen
+                                        referrerpolicy="strict-origin-when-cross-origin"
+                                        frameborder="0"></iframe>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+
+                    </div>{# /cards-track #}
+                </div>{# /cards-viewport #}
+
+                {# 指示器 #}
+                <div class="mt-2" style="overflow: hidden; width: 100%; display: flex; justify-content: center;">
+                    <div id="slide-dots" class="d-flex gap-2 align-items-center"></div>
                 </div>
 
-                {% with aliases=ani.aliases.all %}
-                {% if aliases %}
-                <div class="text-muted mb-3" style="font-size:0.8rem;">
-                    <span class="fw-semibold">別名：</span>
-                    {% for alias in aliases %}
-                        {{ alias.title }}{% if alias.source %}<span class="opacity-50">（{{ alias.source }}）</span>{% endif %}{% if not forloop.last %} / {% endif %}
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% endwith %}
-
-                <h6 class="text-muted mt-3" style="font-size:0.9rem;">
-                    {{ ani.year }} · <span class="badge status-badge" data-status="{{ ani.status }}">{{ ani.get_status_display }}</span>
-                </h6>
-                
-                <h6 class="text-muted mb-2" style="font-size:0.8rem;">
-                    {% for tag in ani.tags.all %}{{ tag.tag_name }}{% if not forloop.last %} / {% endif %}{% endfor %}
-                </h6>
-
-                <div class="mb-4 text-body" style="font-size:0.9rem;">
-                    {% if ani.creators.all %}
-                    <div class="mb-2">
-                        <span class="fw-bold text-secondary me-2">主創：</span>
-                        {% for creator in ani.creators.all %}{{ creator.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
-                    </div>
-                    {% endif %}
-                    {% if ani.studio.all %}
-                    <div class="mb-2">
-                        <span class="fw-bold text-secondary me-2">製作：</span>
-                        {% for s in ani.studio.all %}{{ s.name }}{% if not forloop.last %}、{% endif %}{% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-
-                <hr>
-                <h5 class="fw-bold mt-4" style="font-size:1.15rem;">劇情簡介</h5>
-                <div class="text-secondary" style="line-height: 1.8; font-size:0.9rem;">
-                    {% if ani.description %}
-                        {{ ani.description|linebreaks }}
-                    {% else %}
-                        <span class="text-muted">這部動畫目前還沒有詳細的簡介資料喔！</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+            </div>{# /col-md-8 #}
+        </div>{# /row #}
 
     </div>
 </div>
@@ -122,7 +179,7 @@
 </button>
 
 {# ── 評分 Offcanvas ── #}
-<div class="offcanvas offcanvas-end" tabindex="-1" id="ratingOffcanvas" style="width:300px;">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="ratingOffcanvas">
     <div class="offcanvas-header border-bottom">
         <h6 class="offcanvas-title fw-bold mb-0">評分與評論</h6>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
@@ -221,6 +278,8 @@
 </div>
 
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400&display=swap');
+
     .bg-body {
         background-color: rgba(var(--bs-body-bg-rgb), 0.9) !important;
     }
@@ -293,6 +352,88 @@
 
     /* 評論輸入 */
     #comment-input:focus { border-color: #7caac5; box-shadow: 0 0 0 .2rem rgba(124,170,197,.25); }
+
+    /* 卡片導覽點 */
+    #slide-dots {
+        transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+        will-change: transform;
+    }
+    .slide-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(124,170,197,0.3);
+        padding: 0;
+        cursor: pointer;
+        font-size: 0;
+        color: transparent;
+        white-space: nowrap;
+        overflow: hidden;
+        outline: none;
+        appearance: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+    }
+    .slide-dot:focus, .slide-dot:active, .slide-dot:focus-visible {
+        outline: none;
+        box-shadow: none;
+        background: transparent;
+    }
+    .slide-dot:hover {
+        outline: none;
+        box-shadow: none;
+        background: #c3e8fd;
+    }
+    .slide-dot.active:focus, .slide-dot.active:active, .slide-dot.active:focus-visible {
+        background: transparent;
+    }
+    .slide-dot.active {
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        background: transparent;
+        font-size: 1.0rem;
+        font-weight: 400;
+        font-family: 'Outfit', sans-serif;
+        letter-spacing: 0.06em;
+        color: #4d95c8;
+        overflow: visible;
+    }
+
+    /* 卡片左右箭頭 */
+    .slide-arrow { color: rgba(88,88,88,0.75); }
+    [data-bs-theme="dark"] .slide-arrow { color: rgba(255,255,255,0.75); }
+
+    /* 角色卡片 */
+    .char-card { transition: box-shadow 0.15s; }
+    .char-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+
+    /* 隱藏卡片捲動條 */
+    .card-slide { scrollbar-width: none; }
+    .card-slide::-webkit-scrollbar { display: none; }
+
+    /* 瑣事 markdown */
+    .trivia-body a { color: #7caac5; text-decoration: none; }
+    .trivia-body a:hover { text-decoration: underline; }
+    .trivia-body ul, .trivia-body ol { padding-left: 1.4rem; margin-bottom: 0.6rem; }
+    .trivia-body li { margin-bottom: 0.3rem; }
+    .trivia-body li::marker { color: #7caac5; }
+    .trivia-body p { margin-bottom: 0.5rem; }
+    .trivia-body strong { color: inherit; }
+
+    /* 影片切換籤 */
+    .video-tab-btn {
+        border: 1px solid rgba(124,170,197,0.4);
+        background: transparent;
+        color: inherit;
+        border-radius: 999px;
+        padding: 0.18rem 0.65rem;
+        font-size: 0.72rem;
+        line-height: 1.3;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .video-tab-btn:hover { border-color: #7caac5; }
+    .video-tab-btn.active { background: #7caac5; border-color: #7caac5; color: #fff; }
 </style>
 
 <script>
@@ -445,6 +586,405 @@
         });
     });
 
+    // ── 卡片滑動導覽 ──
+    ;(function () {
+        const track    = document.getElementById('cards-track')
+        const viewport = document.getElementById('cards-viewport')
+        const dotsEl   = document.getElementById('slide-dots')
+        if (!track) return
+
+        const slides = Array.from(track.querySelectorAll('.card-slide'))
+        if (!slides.length) return
+
+        let current = 0
+        const dots = []
+
+        slides.forEach((slide, i) => {
+            const d = document.createElement('button')
+            d.className = 'slide-dot' + (i === 0 ? ' active' : '')
+            d.textContent = slide.dataset.label || ''
+            d.addEventListener('click', () => goTo(i))
+            dotsEl.appendChild(d)
+            dots.push(d)
+        })
+
+        function centerDots() {
+            const activeDot = dots[current]
+            const stripW    = dotsEl.offsetWidth
+            const dotCenter = activeDot.offsetLeft + activeDot.offsetWidth / 2
+            dotsEl.style.transform = `translateX(${stripW / 2 - dotCenter}px)`
+        }
+
+        function updateScales() {
+            dots.forEach((d, i) => {
+                const dist = Math.abs(i - current)
+                d.style.transform = dist === 0 ? '' : `scale(${Math.max(0.35, 1 - dist * 0.22)})`
+            })
+        }
+
+        requestAnimationFrame(() => { centerDots(); updateScales() })
+
+        function goTo(idx) {
+            current = ((idx % slides.length) + slides.length) % slides.length
+            track.style.transform = `translateX(-${100 * current}%)`
+            dots.forEach((d, i) => d.classList.toggle('active', i === current))
+            requestAnimationFrame(centerDots)
+            updateScales()
+        }
+
+        // ── 左右箭頭 ──
+        const zone = document.createElement('div')
+        zone.style.cssText = 'position: relative;'
+        viewport.parentNode.insertBefore(zone, viewport)
+        zone.appendChild(viewport)
+
+        let hideTimer = null
+        const arrowBtns = []
+
+        function showArrows() {
+            clearTimeout(hideTimer)
+            arrowBtns.forEach(b => { b.style.opacity = '1'; b.style.pointerEvents = '' })
+        }
+        function hideArrows() {
+            hideTimer = setTimeout(() => {
+                arrowBtns.forEach(b => { b.style.opacity = '0'; b.style.pointerEvents = 'none' })
+            }, 80)
+        }
+
+        zone.addEventListener('mouseenter', showArrows)
+        zone.addEventListener('mouseleave', hideArrows)
+
+        ;['prev', 'next'].forEach(dir => {
+            const btn = document.createElement('button')
+            btn.innerHTML = `<i class="bi bi-chevron-${dir === 'prev' ? 'left' : 'right'}"></i>`
+            const pos = dir === 'prev'
+                ? 'left: 0; transform: translateX(-100%) translateY(-50%)'
+                : 'right: 0; transform: translateX(100%) translateY(-50%)'
+            btn.className = 'slide-arrow'
+            btn.style.cssText = `
+                position: absolute; ${pos}; top: 50%;
+                z-index: 10; background: none; border: none;
+                padding: 6px 10px; font-size: 1.6rem; line-height: 1;
+                cursor: pointer; user-select: none;
+                opacity: 0; pointer-events: none;
+                transition: opacity 0.2s, color 0.15s;
+            `
+            btn.addEventListener('mouseenter', () => { showArrows(); btn.style.color = '#7caac5' })
+            btn.addEventListener('mouseleave', () => { hideArrows(); btn.style.color = '' })
+            btn.addEventListener('click', () => goTo(dir === 'prev' ? current - 1 : current + 1))
+            zone.appendChild(btn)
+            arrowBtns.push(btn)
+        })
+
+        // ── 鍵盤 ──
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') goTo(current + 1)
+            else if (e.key === 'ArrowLeft') goTo(current - 1)
+        })
+
+        // ── 拖動（觸控 + 滑鼠） ──
+        let startX = 0, startY = 0, ptrActive = false
+
+        viewport.addEventListener('pointerdown', e => {
+            startX = e.clientX; startY = e.clientY; ptrActive = true
+        }, { passive: true })
+
+        viewport.addEventListener('pointerup', e => {
+            if (!ptrActive) return
+            ptrActive = false
+            const dx = e.clientX - startX
+            const dy = Math.abs(e.clientY - startY)
+            if (Math.abs(dx) > 50 && dy < 80) goTo(dx < 0 ? current + 1 : current - 1)
+        })
+
+        viewport.addEventListener('pointercancel', () => { ptrActive = false })
+    })()
+
+    // ── 角色 Comic Panel Banner ──
+    ;(function buildCharBanner() {
+        const banner = document.getElementById('char-banner')
+        const dataEl = document.getElementById('char-data')
+        if (!banner || !dataEl) return
+
+        const chars = JSON.parse(dataEl.textContent)
+        const n = chars.length
+        if (!n) return
+
+        // 依數量決定每行放幾格
+        function rowLayout(total) {
+            if (total <= 3) return [total]
+            if (total === 4) return [2, 2]
+            if (total === 5) return [3, 2]
+            if (total === 6) return [3, 3]
+            if (total === 7) return [4, 3]
+            if (total === 8) return [4, 4]
+            if (total === 9) return [3, 3, 3]
+            // 10+：盡量每行 4 格，平均分配
+            const rowCount = Math.ceil(total / 4)
+            const perRow   = Math.ceil(total / rowCount)
+            const rows = []
+            let rem = total
+            while (rem > 0) { rows.push(Math.min(perRow, rem)); rem -= perRow }
+            return rows
+        }
+
+        Object.assign(banner.style, {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'clamp(4px, 0.5vw, 8px)',
+            background: 'transparent',
+            width: '100%',
+            height: '100%',
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+        })
+
+        const SLANT = 5   // % of panel local width
+        const B     = 2 // 框寬 %（~2px）
+
+        function makePanel(char, globalIdx, isFirst, isLast) {
+            const tl  = isFirst ? 0       : SLANT
+            const br  = isLast  ? 100     : 100 - SLANT
+            const itl = isFirst ? B       : SLANT + B
+            const ibr = isLast  ? 100 - B : 100 - SLANT - B
+
+            const panel = document.createElement('div')
+            panel.style.cssText = `
+                flex: 1;
+                position: relative;
+                background: rgba(0,0,0,0.7);
+                clip-path: polygon(${tl}% 0%, 100% 0%, ${br}% 100%, 0% 100%);
+                cursor: pointer;
+            `
+            panel.addEventListener('click', () => {
+                if (window._charModalOpen) window._charModalOpen(char, panel)
+            })
+
+            const inner = document.createElement('div')
+            inner.style.cssText = `
+                position: absolute;
+                top: clamp(1px, 0.18vw, 2px); bottom: clamp(1px, 0.18vw, 2px);
+                left: 0; right: 0;
+                overflow: hidden;
+                clip-path: polygon(${itl}% 0%, ${100-B}% 0%, ${ibr}% 100%, ${B}% 100%);
+            `
+
+            if (char.image) {
+                const img = document.createElement('img')
+                img.src = char.image
+                img.alt = char.name
+                img.style.cssText = `
+                    position: absolute; inset: 0;
+                    width: 100%; height: 100%;
+                    object-fit: cover;
+                    object-position: ${char.focus_x ?? 50}% ${char.focus_y ?? 20}%;
+                    transform: scale(${char.scale ?? 1});
+                    transform-origin: ${char.focus_x ?? 50}% ${char.focus_y ?? 20}%;
+                `
+                document.addEventListener('char-focus-update', e => {
+                    if (e.detail.id === char.id) {
+                        img.style.objectPosition = `${e.detail.x}% ${e.detail.y}%`
+                        img.style.transformOrigin = `${e.detail.x}% ${e.detail.y}%`
+                        img.style.transform = `scale(${e.detail.scale})`
+                    }
+                })
+                inner.appendChild(img)
+            } else {
+                inner.style.background = `hsl(${globalIdx * 137.5 % 360}, 18%, 22%)`
+                const init = document.createElement('div')
+                init.style.cssText = `
+                    position: absolute; left: 50%; top: 40%;
+                    transform: translate(-50%, -50%);
+                    font-size: 2.5rem; color: rgba(255,255,255,0.18); font-weight: 700;
+                `
+                init.textContent = char.name[0]
+                inner.appendChild(init)
+            }
+
+            const grad = document.createElement('div')
+            grad.style.cssText = `
+                position: absolute; inset: 0;
+                background: linear-gradient(to top, rgba(0,0,0,0.68) 0%, transparent 52%);
+                pointer-events: none;
+            `
+            inner.appendChild(grad)
+
+            const label = document.createElement('div')
+            label.style.cssText = `
+                position: absolute; left: 50%; bottom: 8px;
+                transform: translateX(-50%); text-align: center;
+                color: #fff; pointer-events: none; white-space: nowrap; z-index: 1;
+            `
+            label.innerHTML =
+                `<div style="font-size:clamp(0.65rem,1.5vw,0.82rem);font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);">${char.name}</div>` +
+                (char.va ? `<div style="font-size:clamp(0.58rem,1.2vw,0.7rem);opacity:0.82;text-shadow:0 1px 3px rgba(0,0,0,0.9);">VA: ${char.va}</div>` : '')
+            inner.appendChild(label)
+
+            panel.appendChild(inner)
+            return panel
+        }
+
+        let idx = 0
+        rowLayout(n).forEach(rowSize => {
+            const row = document.createElement('div')
+            row.style.cssText = `
+                display: flex; flex: 1;
+                gap: clamp(4px, 0.5vw, 8px);
+                min-height: 0;
+            `
+            for (let j = 0; j < rowSize && idx < n; j++, idx++) {
+                row.appendChild(makePanel(chars[idx], idx, j === 0, j === rowSize - 1))
+            }
+            banner.appendChild(row)
+        })
+    })()
+
+    // ── 角色詳情 Modal ──
+    ;(function charModal() {
+        const overlay = document.createElement('div')
+        overlay.style.cssText = `
+            display: none; position: fixed; inset: 0; z-index: 2000;
+            align-items: center; justify-content: center;
+        `
+        const box = document.createElement('div')
+        box.style.cssText = `
+            display: flex; width: min(92vw, 860px); height: 75vh;
+            background: var(--bs-body-bg, #1a1a1a);
+            border-radius: 12px; overflow: hidden; position: relative;
+        `
+
+        const imgSide = document.createElement('div')
+        imgSide.style.cssText = `width: 42%; flex-shrink: 0; overflow: hidden; background: #111;`
+        const modalImg = document.createElement('img')
+        modalImg.style.cssText = `width: 100%; height: 100%; object-fit: cover; display: block;`
+        imgSide.appendChild(modalImg)
+
+        const infoSide = document.createElement('div')
+        infoSide.style.cssText = `
+            flex: 1; padding: clamp(1.2rem, 3vw, 2rem);
+            overflow-y: auto; display: flex; flex-direction: column; gap: 0.3rem;
+        `
+        const nameEl   = document.createElement('div')
+        nameEl.style.cssText   = `font-size: clamp(1.1rem, 2.5vw, 1.5rem); font-weight: 700; line-height: 1.2;`
+        const nameZhEl = document.createElement('div')
+        nameZhEl.style.cssText = `font-size: 0.82rem; color: var(--bs-secondary-color, #888);`
+        const vaEl     = document.createElement('div')
+        vaEl.style.cssText     = `font-size: 0.8rem; color: var(--bs-secondary-color, #888); margin-bottom: 0.5rem;`
+        const descEl   = document.createElement('div')
+        descEl.style.cssText   = `font-size: 0.88rem; line-height: 1.8; flex: 1; white-space: pre-wrap;`
+
+        const noDescEl = document.createElement('div')
+        noDescEl.style.cssText = `
+            flex: 1; display: none; flex-direction: column;
+            align-items: center; justify-content: center; gap: 10px;
+        `
+        noDescEl.innerHTML = `
+            <svg width="52" height="52" viewBox="0 0 52 52" fill="none"
+                 xmlns="http://www.w3.org/2000/svg"
+                 style="opacity:0.3; color: var(--bs-secondary-color, #999);">
+                <rect x="11" y="7" width="30" height="38" rx="3"
+                      stroke="currentColor" stroke-width="2"/>
+                <line x1="18" y1="18" x2="34" y2="18"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="18" y1="25" x2="34" y2="25"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="18" y1="32" x2="27" y2="32"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span style="font-size:0.8rem; color: var(--bs-secondary-color, #aaa);">
+                這角色還沒有介紹喔~
+            </span>
+        `
+
+        infoSide.append(nameEl, nameZhEl, vaEl, descEl, noDescEl)
+
+        const closeBtn = document.createElement('button')
+        closeBtn.innerHTML = '&times;'
+        closeBtn.style.cssText = `
+            position: absolute; top: 3vh; right: 2vh; z-index: 10;
+            background: transparent; color: #898989; border: none;
+            font-size: 1.5rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; line-height: 1;
+        `
+
+        box.append(imgSide, infoSide, closeBtn)
+        overlay.appendChild(box)
+        document.body.appendChild(overlay)
+
+        function openModal(char, originEl) {
+            const hasImg = !!char.image
+            imgSide.style.display = hasImg ? '' : 'none'
+            if (hasImg) {
+                modalImg.src = char.image
+                modalImg.style.objectPosition  = `${char.focus_x}% ${char.focus_y}%`
+                modalImg.style.transformOrigin = `${char.focus_x}% ${char.focus_y}%`
+                modalImg.style.transform       = `scale(${char.scale ?? 1})`
+            }
+            nameEl.textContent   = char.name
+            nameZhEl.textContent = char.name_zh || ''
+            nameZhEl.style.display = char.name_zh ? '' : 'none'
+            vaEl.textContent   = char.va ? `VA: ${char.va}` : ''
+            vaEl.style.display = char.va ? '' : 'none'
+            descEl.textContent = char.description || ''
+            descEl.style.display    = char.description ? '' : 'none'
+            noDescEl.style.display  = char.description ? 'none' : 'flex'
+
+            // 背景淡入
+            overlay.style.backdropFilter = 'blur(3px)'
+            overlay.style.transition = 'none'
+            overlay.style.background = 'rgba(0,0,0,0)'
+            overlay.style.display = 'flex'
+
+            // 計算從 originEl 彈出的起始 transform
+            let initTransform = 'scale(0.92)'
+            if (originEl) {
+                const r   = originEl.getBoundingClientRect()
+                const boxW = Math.min(window.innerWidth * 0.92, 860)
+                const boxH = window.innerHeight * 0.75
+                const dx  = (r.left + r.width  / 2) - window.innerWidth  / 2
+                const dy  = (r.top  + r.height / 2) - window.innerHeight / 2
+                const s   = Math.min(r.width / boxW, r.height / boxH)
+                initTransform = `translate(${dx}px,${dy}px) scale(${s})`
+            }
+
+            box.style.transition = 'none'
+            box.style.transform  = initTransform
+            box.style.opacity    = '0'
+
+            // force reflow → 啟動過渡
+            void box.offsetWidth
+
+            box.style.transition = 'transform 0.42s cubic-bezier(0.16,1,0.3,1), opacity 0.28s ease'
+            box.style.transform  = ''
+            box.style.opacity    = '1'
+            overlay.style.transition = 'background 0.32s ease'
+            overlay.style.background = 'rgba(0,0,0,0.72)'
+        }
+
+        function closeModal() {
+            overlay.style.transition = 'background 0.22s ease'
+            overlay.style.background = 'rgba(0,0,0,0)'
+            box.style.transition = 'transform 0.22s cubic-bezier(0.4,0,1,1), opacity 0.18s ease'
+            box.style.transform  = 'scale(0.9)'
+            box.style.opacity    = '0'
+            setTimeout(() => {
+                overlay.style.display         = 'none'
+                overlay.style.backdropFilter  = ''
+                overlay.style.transition      = ''
+                overlay.style.background      = ''
+                box.style.transition          = ''
+                box.style.transform           = ''
+                box.style.opacity             = '1'
+            }, 230)
+        }
+
+        closeBtn.addEventListener('click', closeModal)
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeModal() })
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal() })
+
+        window._charModalOpen = openModal
+    })()
+
     // ── 副標題語言切換 ──
     function updateAltTitles(lang) {
         const c = document.getElementById('alt-titles-inline');
@@ -462,6 +1002,97 @@
     }
     document.addEventListener('langchange', e => updateAltTitles(e.detail.lang));
     document.addEventListener('DOMContentLoaded', () => updateAltTitles(localStorage.getItem('site_lang') || 'zh'));
+
+    // ── 影片切換籤 ──
+    ;(function () {
+        const tabs  = document.getElementById('video-tabs')
+        const frame = document.getElementById('video-frame')
+        if (!tabs || !frame) return
+        tabs.addEventListener('click', e => {
+            const btn = e.target.closest('.video-tab-btn')
+            if (!btn || btn.classList.contains('active')) return
+            tabs.querySelector('.video-tab-btn.active')?.classList.remove('active')
+            btn.classList.add('active')
+            frame.src = btn.dataset.embedUrl
+            frame.title = btn.dataset.title
+        })
+    })()
 })();
+</script>
+
+{# ── 評分分布懸浮框 ── #}
+{{ score_dist|json_script:"score-dist-data" }}
+<div id="dist-panel">
+    <div style="font-size:0.75rem; font-weight:600; color:var(--bs-secondary-color); margin-bottom:10px; letter-spacing:0.04em;">評分分布</div>
+    <div id="dist-bars"></div>
+</div>
+
+<style>
+    :root { --sidebar-w: clamp(300px, 26vw, 440px); }
+    #ratingOffcanvas { --bs-offcanvas-width: var(--sidebar-w); }
+
+    #dist-panel {
+        position: fixed;
+        right: 28px;
+        top: 25%;
+        transform: translateY(-50%);
+        z-index: 1044;
+        background: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 12px;
+        padding: 14px 16px;
+        width: 180px;
+        box-shadow: -2px 4px 24px rgba(0,0,0,0.13);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, right 0.3s ease-in-out;
+    }
+    #dist-panel.visible {
+        right: calc(var(--sidebar-w) + 28px);
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .dist-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .dist-label { font-size: 0.7rem; color: var(--bs-secondary-color); width: 14px; text-align: right; flex-shrink: 0; }
+    .dist-bar-bg { flex: 1; height: 5px; background: var(--bs-tertiary-bg, rgba(128,128,128,0.15)); border-radius: 3px; overflow: hidden; }
+    .dist-bar { height: 100%; background: #7caac5; border-radius: 3px; transition: width 0.45s cubic-bezier(0.4,0,0.2,1); width: 0; }
+    .dist-count { font-size: 0.65rem; color: var(--bs-secondary-color); width: 18px; flex-shrink: 0; }
+</style>
+
+<script>
+;(function () {
+    const panel    = document.getElementById('dist-panel')
+    const barsEl   = document.getElementById('dist-bars')
+    const dataEl   = document.getElementById('score-dist-data')
+    const canvas   = document.getElementById('ratingOffcanvas')
+    if (!panel || !dataEl || !canvas) return
+
+    const dist     = JSON.parse(dataEl.textContent)
+    const maxCount = Math.max(1, ...Object.values(dist))
+
+    for (let s = 10; s >= 1; s--) {
+        const count = dist[s] || 0
+        const pct   = Math.round(count / maxCount * 100)
+        const row   = document.createElement('div')
+        row.className = 'dist-row'
+        row.innerHTML = `
+            <span class="dist-label">${s}</span>
+            <div class="dist-bar-bg"><div class="dist-bar" data-pct="${pct}"></div></div>
+            <span class="dist-count">${count || ''}</span>
+        `
+        barsEl.appendChild(row)
+    }
+
+    canvas.addEventListener('show.bs.offcanvas', () => {
+        panel.classList.add('visible')
+        requestAnimationFrame(() => {
+            panel.querySelectorAll('.dist-bar').forEach(b => { b.style.width = b.dataset.pct + '%' })
+        })
+    })
+    canvas.addEventListener('hide.bs.offcanvas', () => {
+        panel.classList.remove('visible')
+        panel.querySelectorAll('.dist-bar').forEach(b => { b.style.width = '0' })
+    })
+})()
 </script>
 {% endblock %}

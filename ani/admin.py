@@ -3,14 +3,14 @@ from django import forms
 from django.db import models
 from django.http import JsonResponse
 from django.urls import path, reverse
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 from django.core.files.base import ContentFile
 import os
 from io import BytesIO
 from PIL import Image
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter, ChoiceDropdownFilter
 
-from .models import Ani, Tag, Creator, Studio, Episode, AniAlias, SyncJob, UserReview
+from .models import Ani, Tag, Person, Studio, Episode, AniAlias, SyncJob, UserReview, Character, Series
 
 class NoAutocompleteModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -32,11 +32,60 @@ class EpisodeInline(admin.TabularInline):
     verbose_name_plural = "集數列表"
     form = NoAutocompleteModelForm
 
-class AniInline(admin.TabularInline):
-    model = Ani.creators.through
-    extra = 1
-    verbose_name = "參與的動畫"
-    verbose_name_plural = "參與的動畫列表"
+class CharacterInline(admin.StackedInline):
+    model = Character
+    extra = 0
+    verbose_name = "角色"
+    verbose_name_plural = "角色列表"
+    form = NoAutocompleteModelForm
+    show_change_link = True
+    readonly_fields = ('image_focus_editor',)
+    formfield_overrides = {
+        models.TextField: {'widget': forms.Textarea(attrs={'rows': 3, 'autocomplete': 'off'})},
+    }
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                ('order', 'name', 'name_zh'),
+                'va',
+                'description',
+                ('image', 'image_focus_editor'),
+                ('image_focus_x', 'image_focus_y', 'image_scale'),
+            )
+        }),
+    )
+
+    class Media:
+        js  = ('admin/js/char_image_editor.js',)
+        css = {'all': ('admin/css/char_image_editor.css',)}
+
+    def image_focus_editor(self, obj):
+        if not obj.pk or not obj.image:
+            return mark_safe(
+                '<p class="help" style="color:#888;font-style:italic;">'
+                '儲存圖片後即可調整焦點與縮放</p>'
+            )
+        return format_html(
+            '<div class="char-focus-editor" data-x="{x}" data-y="{y}" data-scale="{s}">'
+            '  <div class="focus-preview-wrap">'
+            '    <img src="{src}" alt="">'
+            '    <div class="focus-dot"></div>'
+            '    <div class="focus-hint">點擊設定焦點・滾輪縮放</div>'
+            '  </div>'
+            '  <div class="focus-zoom-row">'
+            '    <label>縮放</label>'
+            '    <input type="range" class="focus-scale-slider"'
+            '           min="0.5" max="4" step="0.05" value="{s}">'
+            '    <span class="focus-scale-val">{sf}×</span>'
+            '  </div>'
+            '</div>',
+            src=obj.image.url,
+            x=obj.image_focus_x, y=obj.image_focus_y, s=obj.image_scale,
+            sf=f'{obj.image_scale:.1f}',
+        )
+    image_focus_editor.short_description = '焦點與縮放'
+
 
 @admin.register(Ani)
 class AniAdmin(admin.ModelAdmin):
@@ -122,18 +171,19 @@ class AniAdmin(admin.ModelAdmin):
         except SyncJob.DoesNotExist:
             return JsonResponse({'error': 'not found'}, status=404)
     
-    list_display = ('title', 'title_zh', 'title_ch', 'year', 'imdb_stars', 'status')
+    list_display = ('title', 'title_zh', 'title_ch', 'year', 'imdb_stars', 'status', 'series')
     list_editable = ('status',)
-    ordering = ('title',) 
+    ordering = ('title',)
     search_fields = ('title', 'title_zh', 'title_ch', 'IMDb_ID', 'aliases__title')
-    
+
     list_filter = (
         ('year', DropdownFilter),
         ('status', ChoiceDropdownFilter),
         ('tags', RelatedDropdownFilter),
+        ('series', RelatedDropdownFilter),
     )
     
-    filter_horizontal = ('creators', 'tags', 'studio')
+    filter_horizontal = ('tags', 'studio')
     
     def poster_preview(self, obj):
         if obj.poster:
@@ -152,7 +202,7 @@ class AniAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('基本資訊', {
-            'fields': ('title', ('title_ch', 'title_zh'), 'description')
+            'fields': ('title', ('title_ch', 'title_zh'), 'description', 'trivia', 'videos')
         }),
         ('視覺素材', {
             'fields': (
@@ -168,29 +218,139 @@ class AniAdmin(admin.ModelAdmin):
             'fields': ('IMDb_ID', 'imdb_stars', 'status', 'rating'),
         }),
         ('關聯分類', {
-            'fields': ('studio', 'creators', 'tags'),
+            'fields': ('creators', 'studio', 'tags', 'series'),
         }),
     )
-    
-    inlines = [AliasInline, EpisodeInline]
 
-@admin.register(Creator)
-class CreatorAdmin(admin.ModelAdmin):
-    list_display = ('name', 'display_animations')
-    inlines = [AniInline]
-    ordering = ('name',) 
+    filter_horizontal = ('creators', 'tags', 'studio')
+    inlines = [CharacterInline, AliasInline, EpisodeInline]
+
+
+@admin.register(Character)
+class CharacterAdmin(admin.ModelAdmin):
+    form = NoAutocompleteModelForm
+    list_display  = ('name', 'ani', 'va', 'image_preview')
+    list_filter   = ('ani',)
+    search_fields = ('name', 'name_zh', 'ani__title')
+    ordering      = ('ani', 'order', 'name')
+    readonly_fields = ('image_focus_editor',)
+
+    fieldsets = (
+        (None, {
+            'fields': ('ani', 'order', 'name', 'name_zh', 'va', 'description'),
+        }),
+        ('圖片', {
+            'fields': ('image', 'image_focus_editor',
+                       'image_focus_x', 'image_focus_y', 'image_scale'),
+        }),
+    )
+
+    class Media:
+        js  = ('admin/js/char_image_editor.js',)
+        css = {'all': ('admin/css/char_image_editor.css',)}
+
+    def image_focus_editor(self, obj):
+        if not obj.pk or not obj.image:
+            return mark_safe('<p class="help" style="color:#888;font-style:italic;">'
+                             '儲存圖片後即可使用視覺焦點編輯器</p>')
+        return format_html(
+            '<div class="char-focus-editor" '
+            '     data-x="{x}" data-y="{y}" data-scale="{s}">'
+            '  <div class="focus-preview-wrap">'
+            '    <img src="{src}" alt="">'
+            '    <div class="focus-dot"></div>'
+            '    <div class="focus-hint">點擊設定焦點・滾輪縮放</div>'
+            '  </div>'
+            '  <div class="focus-zoom-row">'
+            '    <label>縮放</label>'
+            '    <input type="range" class="focus-scale-slider"'
+            '           min="0.5" max="4" step="0.05" value="{s}">'
+            '    <span class="focus-scale-val">{sf}×</span>'
+            '  </div>'
+            '</div>',
+            src=obj.image.url,
+            x=obj.image_focus_x, y=obj.image_focus_y, s=obj.image_scale,
+            sf=f'{obj.image_scale:.1f}',
+        )
+    image_focus_editor.short_description = '焦點與縮放'
+
+    def image_preview(self, obj):
+        if not obj.image:
+            return '無圖片'
+        return format_html(
+            '<div style="width:80px;height:100px;overflow:hidden;border-radius:4px;">'
+            '<img src="{}" style="width:100%;height:100%;object-fit:cover;'
+            'object-position:{}% {}%;transform:scale({});transform-origin:{}% {}%;">'
+            '</div>',
+            obj.image.url,
+            obj.image_focus_x, obj.image_focus_y,
+            obj.image_scale,
+            obj.image_focus_x, obj.image_focus_y,
+        )
+    image_preview.short_description = '預覽'
+
+
+@admin.register(Person)
+class PersonAdmin(admin.ModelAdmin):
+    list_display = ('name', 'display_works')
+    ordering = ('name',)
+
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.prefetch_related('ani_set')
-        
-    def display_animations(self, obj):
-        return ", ".join([ani.title for ani in obj.ani_set.all()])
-    
-    display_animations.short_description = '參與作品'
+        return super().get_queryset(request).prefetch_related('creator_of', 'characters_voiced__ani')
+
+    def display_works(self, obj):
+        works = list(obj.creator_of.values_list('title', flat=True))
+        va_works = list(obj.characters_voiced.values_list('ani__title', flat=True))
+        all_works = list(dict.fromkeys(works + va_works))
+        return ", ".join(all_works[:5]) + ("…" if len(all_works) > 5 else "")
+
+    display_works.short_description = '參與作品'
 
 admin.site.register(Tag)
 admin.site.register(Studio)
 admin.site.register(Episode)
+
+
+class SeriesAdminForm(forms.ModelForm):
+    works = forms.ModelMultipleChoiceField(
+        queryset=Ani.objects.all(),
+        required=False,
+        widget=admin.widgets.FilteredSelectMultiple('作品', is_stacked=False),
+        label='系列作品',
+    )
+
+    class Meta:
+        model = Series
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['works'].initial = self.instance.works.all()
+
+
+@admin.register(Series)
+class SeriesAdmin(admin.ModelAdmin):
+    form = SeriesAdminForm
+    list_display = ('name', 'work_count')
+    search_fields = ('name',)
+
+    def work_count(self, obj):
+        return obj.works.count()
+    work_count.short_description = '作品數量'
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        selected = set(form.cleaned_data['works'].values_list('pk', flat=True))
+        current = set(obj.works.values_list('pk', flat=True))
+
+        # 觸發 Ani 的 pre_save/post_save 訊號，讓看板自動同步/合併邏輯正常運作
+        for ani in Ani.objects.filter(pk__in=current - selected):
+            ani.series = None
+            ani.save()
+        for ani in Ani.objects.filter(pk__in=selected - current):
+            ani.series = obj
+            ani.save()
 
 
 @admin.register(UserReview)

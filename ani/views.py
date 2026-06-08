@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db.models import Q, F, Case, When, Value, IntegerField, Avg
+import json
 from .models import Ani, Episode, UserReview
 from django.utils import timezone
 from django.utils.timezone import localtime
@@ -9,6 +10,7 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+
 
 def ani_index(request):
     priority_qs = ['CROWDFUNDING', 'UPCOMING', 'PILOT', 'GREENLIGHT']
@@ -24,8 +26,8 @@ def ani_index(request):
         'title'
     )
     recent_anis = anis_with_priority[:10]
-    recommended_anis = anis_with_priority[10:25] 
-    
+    recommended_anis = anis_with_priority[10:25]
+
     now = timezone.now()
     one_day = timedelta(days=1)
 
@@ -45,7 +47,6 @@ def ani_index(request):
 
         if aired:
             latest_aired = aired[-1]
-            # 下一集在最新已播的一天內才顯示倒計時，否則只顯示已更新
             if upcoming and upcoming[0].release_time <= latest_aired.release_time + one_day:
                 best[aid] = upcoming[0]
             else:
@@ -80,37 +81,63 @@ def ani_index(request):
         'recent_anis': recent_anis,
         'recommended_anis': recommended_anis,
         'upcoming_episodes': upcoming_episodes,
-        'cal_data_json': json.dumps(cal_data, ensure_ascii=False),
+        'cal_data': cal_data,
     })
 
+
 def ani_detail(request, pk):
-    queryset = Ani.objects.prefetch_related('tags', 'creators', 'studio', 'episodes', 'aliases')
+    queryset = Ani.objects.prefetch_related(
+        'tags', 'creators', 'studio', 'episodes', 'aliases',
+        'characters__va',
+    )
     ani = get_object_or_404(queryset, pk=pk)
 
     user_review = None
     if request.user.is_authenticated:
         user_review = UserReview.objects.filter(user=request.user, ani=ani).first()
 
+    from django.db.models import Count
     rated_qs = ani.reviews.filter(score__isnull=False)
     avg_rating = round(rated_qs.aggregate(avg=Avg('score'))['avg'] or 0, 1) or None
     rating_count = rated_qs.count()
+    score_dist = {i: 0 for i in range(1, 11)}
+    for row in rated_qs.values('score').annotate(c=Count('score')):
+        score_dist[row['score']] = row['c']
     other_reviews_qs = ani.reviews.filter(text__gt='').select_related('user').order_by('-updated_at')
     if request.user.is_authenticated:
         other_reviews_qs = other_reviews_qs.exclude(user=request.user)
     other_reviews = other_reviews_qs[:30]
 
+    ani_creators = list(ani.creators.all())
+    characters   = list(ani.characters.select_related('va').order_by('order', 'name'))
+    char_data    = [
+        {
+            'id':          c.id,
+            'image':       c.image.url if c.image else None,
+            'name':        c.name,
+            'name_zh':     c.name_zh or '',
+            'va':          c.va.name if c.va else '',
+            'description': c.description or '',
+            'focus_x':     c.image_focus_x,
+            'focus_y':     c.image_focus_y,
+            'scale':       c.image_scale,
+        }
+        for c in characters
+    ]
+
     return render(request, 'ani/ani_detail.html', {
         'ani': ani,
+        'ani_creators': ani_creators,
+        'characters': characters,
+        'char_data': char_data,
         'user_review': user_review,
         'avg_rating': avg_rating,
         'rating_count': rating_count,
         'other_reviews': other_reviews,
+        'score_dist': score_dist,
     })
 
-'''def ani_lib(request):
-    all_anis = Ani.objects.all().order_by('-year')
-    return render(request, 'ani/ani_lib.html', {'anis': all_anis})'''
-    
+
 def ani_lib(request):
     sort_by       = request.GET.get('sort', '-year')
     status_filter = request.GET.get('status')
@@ -143,6 +170,7 @@ def ani_lib(request):
         'statuses':   Ani.StatusChoices.choices,
     })
 
+
 def ani_search(request):
     query = request.GET.get('q', '').strip()
 
@@ -152,7 +180,7 @@ def ani_search(request):
         import zhconv
         query_tw = zhconv.convert(query, 'zh-tw')
         query_cn = zhconv.convert(query, 'zh-cn')
-        queries = list(dict.fromkeys([query, query_tw, query_cn]))  # 去重
+        queries = list(dict.fromkeys([query, query_tw, query_cn]))
         def _q_any(field):
             return Q(**{f'{field}__icontains': queries[0]}) if len(queries) == 1 else \
                    Q(**{f'{field}__icontains': queries[0]}) | \
@@ -161,7 +189,9 @@ def ani_search(request):
 
         results = Ani.objects.filter(
             _q_any('title') | _q_any('title_zh') | _q_any('title_ch') |
-            _q_any('creators__name') | _q_any('aliases__title')
+            _q_any('creators__name') | _q_any('aliases__title') |
+            _q_any('characters__name') | _q_any('characters__name_zh') |
+            _q_any('characters__va__name')
         ).annotate(
             relevance_score=Case(
                 *[When(**{f'{f}__iexact': q}, then=Value(100))
@@ -177,7 +207,7 @@ def ani_search(request):
                 output_field=IntegerField(),
             )
         ).distinct().order_by('-relevance_score', '-year', 'title')
-        
+
     if not query and not request.headers.get('HX-Request'):
         return redirect('ani_lib')
 
@@ -191,8 +221,9 @@ def ani_search(request):
     return render(request, 'ani/ani_search.html', {
         'query': query,
         'page_obj': page_obj,
-        'count': results.count() 
+        'count': results.count(),
     })
+
 
 @require_POST
 @login_required
@@ -233,19 +264,21 @@ def submit_review(request, pk):
 def toggle_follow_animation(request):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Unauthorized'}, status=401)
-        
+
     try:
         data = json.loads(request.body)
         animation_id = data.get('animation_id')
         action = data.get('action')
-        
+
         ani = get_object_or_404(Ani, pk=animation_id)
-        
+
         if action == 'follow':
             request.user.following_anis.add(ani)
         elif action == 'unfollow':
             request.user.following_anis.remove(ani)
-            
+
         return JsonResponse({'status': 'ok'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+

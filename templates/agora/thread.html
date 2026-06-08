@@ -1,0 +1,346 @@
+{% extends "navbar.html" %}
+{% load static %}
+
+{% block title %}{{ root.title|default:root.content|truncatechars:30 }} | 茶話會{% endblock %}
+
+{% block content %}
+<style>
+    .hide-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .agora-sidebar-fixed {
+        position: fixed;
+        top: 5.5rem;
+        left: clamp(1rem, 3vw, 3rem);
+        width: clamp(220px, 17vw, 270px);
+        z-index: 5;
+    }
+    .agora-sidebar-card {
+        border: 1px solid rgba(124, 170, 197, 0.2);
+        border-radius: 1rem;
+    }
+    .agora-sidebar-list {
+        max-height: clamp(260px, 60vh, 520px);
+        overflow-y: auto;
+    }
+    .agora-sidebar-item-cover {
+        width: clamp(32px, 8vw, 40px);
+        height: clamp(32px, 8vw, 40px);
+    }
+    .agora-sidebar-item {
+        border-radius: 0.6rem;
+        color: var(--bs-body-color);
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .agora-sidebar-item:hover {
+        background-color: rgba(124, 170, 197, 0.1);
+        color: #7caac5;
+    }
+    .agora-sidebar-item.active {
+        background-color: rgba(124, 170, 197, 0.18);
+        color: #7caac5;
+        font-weight: 600;
+    }
+    [data-bs-theme="dark"] .agora-sidebar-item:hover {
+        background-color: rgba(124, 170, 197, 0.16);
+        color: #aed0e6;
+    }
+    [data-bs-theme="dark"] .agora-sidebar-item.active {
+        background-color: rgba(124, 170, 197, 0.28);
+        color: #aed0e6;
+    }
+    .agora-board-block-fallback {
+        background-color: rgba(124, 170, 197, 0.12);
+        color: #7caac5;
+    }
+    .agora-post-board-thumb {
+        width: clamp(28px, 6vw, 36px);
+        height: clamp(28px, 6vw, 36px);
+    }
+    .agora-post-avatar {
+        width: 20px;
+        height: 20px;
+    }
+    .agora-reply { border-color: #7caac5 !important; }
+    .agora-thread-card { border-radius: 1rem; }
+    .agora-thread-image {
+        display: block;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: clamp(140px, 26vw, 260px);
+        cursor: zoom-in;
+    }
+    .agora-image-lightbox {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.85);
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: zoom-out;
+    }
+    .agora-image-lightbox.show { display: flex; }
+    .agora-image-lightbox img {
+        max-width: 92vw;
+        max-height: 92vh;
+        border-radius: 0.5rem;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+    .agora-post-action-btn {
+        color: var(--bs-secondary-color);
+        border: none;
+        background: transparent;
+        transition: color 0.15s ease;
+    }
+    .agora-post-action-btn:hover {
+        color: #7caac5;
+    }
+    .agora-compose-image-label {
+        cursor: pointer;
+        transition: color 0.15s ease;
+    }
+    .agora-compose-image-label:hover {
+        color: #7caac5 !important;
+    }
+    .agora-compose-submit-btn {
+        background-color: #7caac5;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        transition: opacity 0.18s ease;
+    }
+    .agora-compose-submit-btn:hover {
+        background-color: #7caac5;
+        opacity: 0.85;
+        color: #fff;
+    }
+</style>
+
+{% include "agora/partials/board_sidebar.html" %}
+
+<div class="container py-4" style="max-width: 760px;">
+    <a href="{% url 'agora_board' board.pk %}" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1 mb-3">
+        <i class="bi bi-arrow-left"></i> 返回「<span class="ani-title" data-en="{{ board.name }}" data-zh="{{ board.name_zh|default:board.name }}" data-ch="{{ board.name_ch|default:board.name }}">{{ board.name }}</span>」
+    </a>
+
+    <div class="agora-thread-card p-4 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <a href="{% url 'agora_board' board.pk %}" class="d-flex align-items-center gap-2 text-decoration-none text-reset">
+                {% with cover_ani=board.anis.all.0 %}
+                {% if cover_ani.poster %}
+                <img src="{{ cover_ani.poster_thumbnail.url }}" class="agora-post-board-thumb rounded-2 object-fit-cover flex-shrink-0" loading="lazy" alt="{{ board.name }}">
+                {% else %}
+                <div class="agora-post-board-thumb agora-board-block-fallback rounded-2 d-flex align-items-center justify-content-center flex-shrink-0">
+                    <i class="bi bi-image small"></i>
+                </div>
+                {% endif %}
+                {% endwith %}
+                <span class="small fw-semibold ani-title" data-en="{{ board.name }}" data-zh="{{ board.name_zh|default:board.name }}" data-ch="{{ board.name_ch|default:board.name }}">{{ board.name }}</span>
+            </a>
+            <small class="text-muted">{{ root.created_at|date:"Y-m-d H:i" }}</small>
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <img src="{% static 'images/avatars/' %}{{ root.author.avatar|default:'avatar_default.png' }}" class="agora-post-avatar rounded-circle object-fit-cover" alt="{{ root.author.username }}">
+            <span class="fw-semibold">{{ root.author.username }}</span>
+        </div>
+        {% if root.title %}<h5 class="fw-bold mb-2">{{ root.title }}</h5>{% endif %}
+        {% if root.content %}<p class="mb-0">{{ root.content|linebreaksbr }}</p>{% endif %}
+        {% if root.image %}
+        <img src="{{ root.image.url }}" class="agora-thread-image rounded-3 mt-2" loading="lazy" alt="">
+        {% endif %}
+        <div class="d-flex align-items-center gap-1 mt-2">
+            {% if user.is_authenticated %}
+            <button type="button" class="btn btn-sm agora-post-action-btn agora-reply-trigger d-inline-flex align-items-center gap-1 px-2"
+                    data-bs-toggle="modal" data-bs-target="#agoraReplyModal" data-reply-url="{% url 'agora_create_reply' root.pk %}">
+                <i class="bi bi-reply"></i> 回覆
+            </button>
+            {% endif %}
+            {% if user == root.author %}
+            <button type="button" class="btn btn-sm agora-post-action-btn agora-edit-trigger d-inline-flex align-items-center gap-1 px-2"
+                    data-bs-toggle="modal" data-bs-target="#agoraEditModal"
+                    data-edit-url="{% url 'agora_edit_post' root.pk %}" data-title="{{ root.title }}" data-content="{{ root.content }}">
+                <i class="bi bi-pencil"></i> 編輯
+            </button>
+            <button type="button" class="btn btn-sm agora-post-action-btn agora-delete-trigger d-inline-flex align-items-center gap-1 px-2"
+                    data-bs-toggle="modal" data-bs-target="#agoraDeleteModal"
+                    data-delete-url="{% url 'agora_delete_post' root.pk %}"
+                    data-delete-message="確定要刪除這篇貼文嗎？所有樓層回覆也將一併被刪除，此操作無法復原。">
+                <i class="bi bi-trash"></i> 刪除
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <h6 class="text-muted mb-3"><i class="bi bi-chat-dots"></i> 樓層回覆</h6>
+    {% include "agora/partials/reply.html" with post=root %}
+</div>
+
+{% if user.is_authenticated %}
+<div class="modal fade" id="agoraReplyModal" tabindex="-1" aria-labelledby="agoraReplyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="agoraReplyModalLabel">回覆</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="agoraReplyForm">
+                {% csrf_token %}
+                <div class="modal-body d-flex flex-column gap-3">
+                    <textarea name="content" id="agoraReplyContentInput" rows="4" class="form-control rounded-3 custom-input" placeholder="輸入回覆內容..."></textarea>
+                    <div>
+                        <label for="agoraReplyImageInput" class="agora-compose-image-label small text-muted d-inline-flex align-items-center gap-1 mb-0">
+                            <i class="bi bi-image"></i> <span id="agoraReplyImageName">附上圖片（選填）</span>
+                        </label>
+                        <input type="file" name="image" id="agoraReplyImageInput" accept="image/*" class="d-none">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="submit" class="btn agora-compose-submit-btn px-4">送出</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="agoraEditModal" tabindex="-1" aria-labelledby="agoraEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="agoraEditModalLabel">編輯內容</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="agoraEditForm">
+                {% csrf_token %}
+                <div class="modal-body d-flex flex-column gap-3">
+                    <input type="text" name="title" id="agoraEditTitleInput" maxlength="100" class="form-control rounded-3 custom-input d-none" placeholder="標題">
+                    <textarea name="content" id="agoraEditContentInput" rows="5" class="form-control rounded-3 custom-input" placeholder="想說點什麼呢？"></textarea>
+                    <div>
+                        <label for="agoraEditImageInput" class="agora-compose-image-label small text-muted d-inline-flex align-items-center gap-1 mb-0">
+                            <i class="bi bi-image"></i> <span id="agoraEditImageName">更換圖片（選填）</span>
+                        </label>
+                        <input type="file" name="image" id="agoraEditImageInput" accept="image/*" class="d-none">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="submit" class="btn agora-compose-submit-btn px-4">儲存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="agoraDeleteModal" tabindex="-1" aria-labelledby="agoraDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold text-danger" id="agoraDeleteModalLabel">刪除確認</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0 small text-muted" id="agoraDeleteModalText">確定要刪除這則內容嗎？此操作無法復原。</p>
+            </div>
+            <form method="post" id="agoraDeleteForm">
+                {% csrf_token %}
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">刪除</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="agora-image-lightbox" id="agoraImageLightbox">
+    <img src="" alt="" id="agoraImageLightboxImg">
+</div>
+
+<script>
+    (function () {
+        const lightbox = document.getElementById('agoraImageLightbox')
+        const lightboxImg = document.getElementById('agoraImageLightboxImg')
+        if (lightbox && lightboxImg) {
+            document.addEventListener('click', (e) => {
+                const img = e.target.closest('.agora-thread-image')
+                if (img) {
+                    lightboxImg.src = img.src
+                    lightbox.classList.add('show')
+                } else if (lightbox.classList.contains('show')) {
+                    lightbox.classList.remove('show')
+                    lightboxImg.src = ''
+                }
+            })
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && lightbox.classList.contains('show')) {
+                    lightbox.classList.remove('show')
+                    lightboxImg.src = ''
+                }
+            })
+        }
+
+        const replyModalEl = document.getElementById('agoraReplyModal')
+        const replyForm = document.getElementById('agoraReplyForm')
+        const replyContent = document.getElementById('agoraReplyContentInput')
+        const replyImageInput = document.getElementById('agoraReplyImageInput')
+        const replyImageName = document.getElementById('agoraReplyImageName')
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.agora-reply-trigger')
+            if (!btn || !replyForm) return
+            replyForm.action = btn.getAttribute('data-reply-url')
+        })
+        if (replyImageInput && replyImageName) {
+            replyImageInput.addEventListener('change', () => {
+                replyImageName.textContent = replyImageInput.files[0] ? replyImageInput.files[0].name : '附上圖片（選填）'
+            })
+        }
+        if (replyModalEl) {
+            replyModalEl.addEventListener('hidden.bs.modal', () => {
+                if (replyForm) replyForm.reset()
+                if (replyImageName) replyImageName.textContent = '附上圖片（選填）'
+            })
+        }
+
+        const editModalEl = document.getElementById('agoraEditModal')
+        const editForm = document.getElementById('agoraEditForm')
+        const editTitle = document.getElementById('agoraEditTitleInput')
+        const editContent = document.getElementById('agoraEditContentInput')
+        const editImageInput = document.getElementById('agoraEditImageInput')
+        const editImageName = document.getElementById('agoraEditImageName')
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.agora-edit-trigger')
+            if (!btn || !editForm) return
+            editForm.action = btn.getAttribute('data-edit-url')
+            const hasTitle = btn.hasAttribute('data-title')
+            editTitle.classList.toggle('d-none', !hasTitle)
+            editTitle.value = btn.getAttribute('data-title') || ''
+            editContent.value = btn.getAttribute('data-content') || ''
+        })
+        if (editImageInput && editImageName) {
+            editImageInput.addEventListener('change', () => {
+                editImageName.textContent = editImageInput.files[0] ? editImageInput.files[0].name : '更換圖片（選填）'
+            })
+        }
+        if (editModalEl) {
+            editModalEl.addEventListener('hidden.bs.modal', () => {
+                if (editForm) editForm.reset()
+                if (editImageName) editImageName.textContent = '更換圖片（選填）'
+            })
+        }
+
+        const deleteForm = document.getElementById('agoraDeleteForm')
+        const deleteText = document.getElementById('agoraDeleteModalText')
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.agora-delete-trigger')
+            if (!btn || !deleteForm) return
+            deleteForm.action = btn.getAttribute('data-delete-url')
+            if (deleteText) deleteText.textContent = btn.getAttribute('data-delete-message') || '確定要刪除這則內容嗎？此操作無法復原。'
+        })
+    })()
+</script>
+{% endif %}
+{% endblock %}

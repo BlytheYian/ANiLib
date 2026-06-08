@@ -1,0 +1,16 @@
+{% for b in boards %}
+{% with cover_ani=b.anis.all.0 %}
+<a href="{% url 'agora_board' b.pk %}" class="agora-board-block d-flex align-items-center gap-3 text-decoration-none text-reset p-2">
+    {% if cover_ani.poster %}
+    <img src="{{ cover_ani.poster_thumbnail.url }}" class="agora-board-block-cover rounded-3 object-fit-cover flex-shrink-0" loading="lazy" alt="{{ b.name }}">
+    {% else %}
+    <div class="agora-board-block-cover agora-board-block-fallback rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
+        <i class="bi bi-image"></i>
+    </div>
+    {% endif %}
+    <span class="fw-semibold text-truncate ani-title" data-en="{{ b.name }}" data-zh="{{ b.name_zh|default:b.name }}" data-ch="{{ b.name_ch|default:b.name }}">{{ b.name }}</span>
+</a>
+{% endwith %}
+{% empty %}
+<p class="text-muted small text-center py-4 mb-0">找不到符合的看板</p>
+{% endfor %}

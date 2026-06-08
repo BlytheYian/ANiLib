@@ -3,6 +3,7 @@ import os
 from django.db import models
 from django.conf import settings
 from ani.models import Ani
+from agora.models import Board
 
 class CustomUser(AbstractUser):
     avatar_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'avatars')
@@ -14,10 +15,16 @@ class CustomUser(AbstractUser):
         null=True
     )
     following_anis = models.ManyToManyField(
-        Ani, 
-        related_name='followers', 
+        Ani,
+        related_name='followers',
         blank=True,
         verbose_name="追番列表"
+    )
+    following_boards = models.ManyToManyField(
+        Board,
+        related_name='followers',
+        blank=True,
+        verbose_name="關注看板列表"
     )
     class Meta:
         verbose_name = "會員"

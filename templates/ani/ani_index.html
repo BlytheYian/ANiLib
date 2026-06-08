@@ -343,7 +343,7 @@
     }
 </style>
 
-<script type="application/json" id="calDataJson">{{ cal_data_json|safe }}</script>
+{{ cal_data|json_script:"calDataJson" }}
 
 <div class="modal fade" id="calendarModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered" style="max-width: min(660px, 92vw);">

@@ -1,0 +1,412 @@
+{% extends "navbar.html" %}
+
+{% block title %}茶話會 | ANiLib{% endblock %}
+
+{% block content %}
+<style>
+    .agora-board-pill {
+        white-space: nowrap;
+        border: 1px solid #7caac5;
+        color: #7caac5;
+        transition: background 0.18s ease, color 0.18s ease;
+    }
+    .agora-board-pill:hover,
+    .agora-board-pill.active {
+        background: #7caac5;
+        color: #fff;
+    }
+    .agora-post-card {
+        border: 1px solid rgba(124, 170, 197, 0.25);
+        background: var(--bs-body-bg);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .agora-post-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
+    }
+    .agora-post-board-thumb {
+        width: clamp(28px, 6vw, 36px);
+        height: clamp(28px, 6vw, 36px);
+    }
+    .agora-post-avatar {
+        width: 20px;
+        height: 20px;
+    }
+    .agora-post-excerpt {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+    }
+
+    .hide-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .agora-sidebar-fixed {
+        position: fixed;
+        top: 5.5rem;
+        left: clamp(1rem, 3vw, 3rem);
+        width: clamp(220px, 17vw, 270px);
+        z-index: 5;
+    }
+    .agora-sidebar-card {
+        border: 1px solid rgba(124, 170, 197, 0.2);
+        border-radius: 1rem;
+    }
+    .agora-sidebar-list {
+        max-height: clamp(260px, 60vh, 520px);
+        overflow-y: auto;
+    }
+    .agora-sidebar-item-cover {
+        width: clamp(32px, 8vw, 40px);
+        height: clamp(32px, 8vw, 40px);
+    }
+    .agora-sidebar-item {
+        border-radius: 0.6rem;
+        color: var(--bs-body-color);
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .agora-sidebar-item:hover {
+        background-color: rgba(124, 170, 197, 0.1);
+        color: #7caac5;
+    }
+    .agora-sidebar-item.active {
+        background-color: rgba(124, 170, 197, 0.18);
+        color: #7caac5;
+        font-weight: 600;
+    }
+    [data-bs-theme="dark"] .agora-sidebar-item:hover {
+        background-color: rgba(124, 170, 197, 0.16);
+        color: #aed0e6;
+    }
+    [data-bs-theme="dark"] .agora-sidebar-item.active {
+        background-color: rgba(124, 170, 197, 0.28);
+        color: #aed0e6;
+    }
+
+    .agora-view-boards-btn {
+        border: 1px solid #7caac5;
+        color: #7caac5;
+        border-radius: 999px;
+        white-space: nowrap;
+        transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+    }
+    .agora-view-boards-btn:hover {
+        background-color: #7caac5;
+        color: #fff;
+        transform: translateX(3px);
+    }
+    .agora-board-block {
+        border-radius: 0.75rem;
+        transition: background-color 0.15s ease, transform 0.15s ease;
+    }
+    .agora-board-block:hover {
+        background-color: rgba(124, 170, 197, 0.1);
+        transform: translateX(3px);
+    }
+    [data-bs-theme="dark"] .agora-board-block:hover {
+        background-color: rgba(124, 170, 197, 0.18);
+    }
+    .agora-board-block-cover {
+        width: clamp(48px, 12vw, 60px);
+        height: clamp(64px, 16vw, 80px);
+    }
+    .agora-board-block-fallback {
+        background-color: rgba(124, 170, 197, 0.12);
+        color: #7caac5;
+    }
+
+    .agora-back-btn {
+        border: 1px solid rgba(124, 170, 197, 0.4);
+        color: #7caac5;
+        border-radius: 999px;
+        transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+    }
+    .agora-back-btn:hover {
+        background-color: #7caac5;
+        color: #fff;
+        transform: translateX(-3px);
+    }
+    .agora-board-header {
+        height: clamp(140px, 26vw, 220px);
+    }
+    .agora-board-header-bg {
+        background-size: cover;
+        background-position: center;
+        filter: blur(18px) brightness(0.7);
+        transform: scale(1.15);
+    }
+    .agora-board-header-overlay {
+        background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45));
+    }
+    .agora-board-header-cover {
+        width: clamp(64px, 14vw, 96px);
+        height: clamp(85px, 18.7vw, 128px);
+    }
+    .agora-board-header h4 {
+        color: #fff;
+        text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+    }
+    .agora-board-header .agora-board-stats {
+        color: rgba(255,255,255,0.85);
+        text-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    }
+
+    .agora-board-info-fixed {
+        position: fixed;
+        top: 5.5rem;
+        right: clamp(1rem, 3vw, 3rem);
+        width: clamp(220px, 17vw, 270px);
+        z-index: 5;
+    }
+    .agora-board-info-card {
+        border: 1px solid rgba(124, 170, 197, 0.2);
+        border-radius: 1rem;
+    }
+    .agora-board-info-banner {
+        height: clamp(80px, 12vw, 120px);
+    }
+    .agora-board-info-cover {
+        width: clamp(48px, 10vw, 60px);
+        height: clamp(64px, 13.3vw, 80px);
+    }
+
+    .agora-compose-fab {
+        position: fixed;
+        bottom: 3.5vh;
+        left: clamp(1rem, 3vw, 5rem);
+        width: 7.5vh;
+        height: 7.5vh;
+        border-radius: 50%;
+        background-color: #898989;
+        color: #fff;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+        z-index: 20;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+    .agora-compose-fab:hover {
+        transform: scale(1.08);
+        background-color: #6a98b3;
+        color: #fff;
+    }
+    .agora-compose-image-label {
+        cursor: pointer;
+        transition: color 0.15s ease;
+    }
+    .agora-compose-image-label:hover {
+        color: #7caac5 !important;
+    }
+    .agora-compose-submit-btn {
+        background-color: #7e7e7e;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        transition: opacity 0.18s ease;
+    }
+    .agora-compose-submit-btn:hover {
+        background-color: #7e7e7e;
+        opacity: 0.85;
+        color: #7caac5;
+    }
+    .agora-follow-star-btn {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        z-index: 10;
+        background: rgba(0,0,0,0.4);
+        border: none;
+        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.3rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        backdrop-filter: blur(2px);
+    }
+    .agora-follow-star-btn:hover { transform: scale(1.15); background: rgba(0,0,0,0.6); }
+    .agora-follow-star-btn.is-following { color: #99d5e9; }
+</style>
+
+{% include "agora/partials/board_sidebar.html" %}
+
+{% if board and user.is_authenticated %}
+<button type="button" class="agora-compose-fab" data-bs-toggle="modal" data-bs-target="#agoraComposeModal" title="發表新討論">
+    <i class="bi bi-pencil-fill"></i>
+</button>
+
+<div class="modal fade" id="agoraComposeModal" tabindex="-1" aria-labelledby="agoraComposeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="agoraComposeModalLabel">發表新討論</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'agora_create_post' board.id %}">
+                {% csrf_token %}
+                <div class="modal-body d-flex flex-column gap-3">
+                    <input type="text" name="title" maxlength="100" class="form-control rounded-3 custom-input" placeholder="標題">
+                    <textarea name="content" rows="5" class="form-control rounded-3 custom-input" placeholder="想說點什麼呢？"></textarea>
+                    <div>
+                        <label for="agoraComposeImageInput" class="agora-compose-image-label small text-muted d-inline-flex align-items-center gap-1 mb-0">
+                            <i class="bi bi-image"></i>
+                        </label>
+                        <input type="file" name="image" id="agoraComposeImageInput" accept="image/*" class="d-none">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="submit" class="btn agora-compose-submit-btn px-4">送出</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="container py-4" style="max-width: 760px;">
+
+    {% if board %}
+    <a href="{% url 'agora' %}" class="btn btn-sm agora-back-btn d-inline-flex align-items-center gap-1 px-3 mb-3">
+        <i class="bi bi-arrow-left"></i> 返回
+    </a>
+
+    {% with cover_ani=board.anis.all.0 %}
+    <div class="position-relative overflow-hidden rounded-4 mb-4 agora-board-header">
+        <div class="position-absolute top-0 start-0 w-100 h-100 agora-board-header-bg"
+             style="background-image: url('{% if cover_ani.banner %}{{ cover_ani.banner.url }}{% elif cover_ani.poster %}{{ cover_ani.poster.url }}{% endif %}');"></div>
+        <div class="position-absolute top-0 start-0 w-100 h-100 agora-board-header-overlay"></div>
+        <a href="{% if cover_ani %}{% url 'ani_detail' cover_ani.pk %}{% endif %}"
+           class="position-relative h-100 d-flex align-items-center gap-3 p-4 text-decoration-none text-reset">
+            {% if cover_ani.poster %}
+            <img src="{{ cover_ani.poster_thumbnail.url }}" class="agora-board-header-cover rounded-3 object-fit-cover flex-shrink-0 shadow-sm" loading="lazy" alt="{{ board.name }}">
+            {% else %}
+            <div class="agora-board-header-cover agora-board-block-fallback rounded-3 d-flex align-items-center justify-content-center flex-shrink-0">
+                <i class="bi bi-image fs-3"></i>
+            </div>
+            {% endif %}
+            <div>
+                <h4 class="fw-bold mb-1 ani-title" data-en="{{ board.name }}" data-zh="{{ board.name_zh|default:board.name }}" data-ch="{{ board.name_ch|default:board.name }}">{{ board.name }}</h4>
+                <p class="agora-board-stats small mb-0">{{ board.followers.count }}人收藏該看板 ．{{ board.thread_count }}個帖子</p>
+            </div>
+        </a>
+        <button class="agora-follow-star-btn {% if user in board.followers.all %}is-following{% endif %}" data-board-id="{{ board.id }}">
+            <i class="bi {% if user in board.followers.all %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+        </button>
+    </div>
+    {% endwith %}
+    {% else %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="text-muted small mb-0">
+            {% if mode == 'popular' %}
+            <i class="bi bi-fire"></i> 熱門討論
+            {% else %}
+            <i class="bi bi-heart"></i> 來自你關注看板的最新討論
+            {% endif %}
+        </p>
+        <button type="button"
+                class="btn btn-sm agora-view-boards-btn d-inline-flex align-items-center gap-1 px-3"
+                data-bs-toggle="offcanvas" data-bs-target="#agoraBoardsOffcanvas" aria-controls="agoraBoardsOffcanvas">
+            查看看板 <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+    {% endif %}
+
+    <div id="agora-post-list">
+        {% include "agora/partials/post_list.html" %}
+    </div>
+</div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="agoraBoardsOffcanvas" aria-labelledby="agoraBoardsOffcanvasLabel">
+    <div class="offcanvas-header border-bottom">
+        <h6 class="offcanvas-title fw-bold mb-0" id="agoraBoardsOffcanvasLabel">所有看板</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column pt-3 hide-scrollbar" style="overflow-y: auto;">
+        <input type="search" id="agoraBoardSearchInput" class="form-control form-control-sm rounded-pill custom-input mb-3"
+               placeholder="搜尋看板或作品名稱..." autocomplete="off">
+        <div id="agoraBoardSearchResults" class="d-flex flex-column gap-2">
+            {% include "agora/partials/board_list.html" %}
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const input   = document.getElementById('agoraBoardSearchInput')
+        const results = document.getElementById('agoraBoardSearchResults')
+        if (!input || !results) return
+
+        let timer = null
+        input.addEventListener('input', () => {
+            clearTimeout(timer)
+            const q = input.value.trim()
+            timer = setTimeout(() => {
+                fetch('{% url "agora_board_search" %}?q=' + encodeURIComponent(q), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(resp => resp.text())
+                    .then(html => { results.innerHTML = html })
+            }, 300)
+        })
+    })()
+
+    // ── 發文彈窗：圖片檔名顯示 + 關閉時重置 ──
+    ;(function () {
+        const input = document.getElementById('agoraComposeImageInput')
+        const label = document.getElementById('agoraComposeImageName')
+        const modalEl = document.getElementById('agoraComposeModal')
+        if (!input || !label || !modalEl) return
+
+        input.addEventListener('change', () => {
+            label.textContent = input.files[0] ? input.files[0].name : '附加圖片'
+        })
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            const form = modalEl.querySelector('form')
+            if (form) form.reset()
+            label.textContent = '附加圖片'
+        })
+    })()
+
+    function getCookie(name) {
+        const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    // ── 看板收藏星星 ──
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.agora-follow-star-btn')
+        if (!btn) return
+        e.preventDefault()
+        e.stopPropagation()
+        const boardId = btn.getAttribute('data-board-id')
+        if (!boardId) return
+        const isFollowing = btn.classList.contains('is-following')
+        const action = isFollowing ? 'unfollow' : 'follow'
+        const resp = await fetch('{% url "agora_toggle_follow_board" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ board_id: boardId, action })
+        })
+        if (resp.ok) {
+            btn.classList.toggle('is-following', !isFollowing)
+            btn.innerHTML = `<i class="bi ${!isFollowing ? 'bi-star-fill' : 'bi-star'}"></i>`
+        } else if (resp.status === 401 || resp.status === 403) {
+            alert('請先登入才能收藏看板喔！')
+        }
+    })
+</script>
+{% endblock %}

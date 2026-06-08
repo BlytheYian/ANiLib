@@ -28,6 +28,7 @@ urlpatterns = [
     path('accounts/follow/', views.toggle_follow_animation, name='toggle_follow_animation'),
     path('accounts/', include('accounts.urls')),
     path('arena/', include('arena.urls')),
+    path('agora/', include('agora.urls')),
 ]
 
 if settings.DEBUG:

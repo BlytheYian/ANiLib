@@ -1,0 +1,153 @@
+/* ── 隱藏原始數字輸入列 ── */
+.field-image_focus_x,
+.field-image_focus_y,
+.field-image_scale {
+    display: none !important;
+}
+
+/* ── 角色選單列 ── */
+.char-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--body-bg);
+    border: 1px solid var(--hairline-color);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+}
+
+.char-switcher-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--body-fg);
+    white-space: nowrap;
+}
+
+.char-switcher-select {
+    font-size: 0.85rem;
+    padding: 4px 28px 4px 8px;
+    border: 1px solid var(--hairline-color);
+    border-radius: 4px;
+    background: var(--darkened-bg);
+    color: var(--body-fg);
+    cursor: pointer;
+    min-width: 140px;
+    appearance: auto;
+}
+
+.char-switcher-select:focus {
+    outline: 2px solid #79aec8;
+    outline-offset: 1px;
+}
+
+/* ── Character inline 外框 — Django admin CSS 變數支援夜間/日間模式 ── */
+.inline-related.dynamic-characters {
+    border: 1px solid var(--hairline-color);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    margin-bottom: 0;
+    padding: 12px 16px 16px;
+    background: var(--darkened-bg);
+}
+
+/* 有 switcher 時隱藏 h3（JS 會直接 display:none，這是 CSS 備援） */
+.char-switcher + .inline-related.dynamic-characters h3 {
+    display: none;
+}
+
+/* 無 switcher 時（只有 1 角色尚無多角色），保留 h3 樣式 */
+.inline-related.dynamic-characters:not(.char-switcher + *) h3 {
+    margin: -12px -16px 12px;
+    padding: 8px 16px;
+    background: var(--body-bg);
+    border-bottom: 1px solid var(--hairline-color);
+    border-radius: 6px 6px 0 0;
+    font-size: 0.9rem;
+}
+
+/* ── 圖片上傳列並排焦點編輯器 ── */
+.inline-group .field-image.field-image_focus_editor {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+/* ── 焦點視覺編輯器 ── */
+.char-focus-editor {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 4px 0 8px;
+}
+
+.focus-preview-wrap {
+    width: 180px;
+    height: 240px;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+    border-radius: 6px;
+    border: 1px solid var(--hairline-color);
+    background: #111;
+    user-select: none;
+}
+
+.focus-preview-wrap.dragging {
+    cursor: grabbing;
+}
+
+.focus-preview-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+}
+
+.focus-dot {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.55);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    transition: left 0.08s, top 0.08s;
+}
+
+.focus-hint {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.focus-zoom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--secondary, #666);
+}
+
+.focus-zoom-row label { min-width: 2em; }
+
+.focus-scale-slider {
+    width: 130px;
+    accent-color: #79aec8;
+    cursor: pointer;
+}
+
+.focus-scale-val {
+    min-width: 3.2em;
+    color: var(--secondary, #666);
+}

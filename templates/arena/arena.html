@@ -282,6 +282,23 @@
     #crosshair.aimed-enemy  { --ch: rgba(255, 60,  60, 0.95); }
     #crosshair::before { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); background: var(--ch); }
     #crosshair::after  { width: 2px; height: 100%; left: 50%; top: 0; transform: translateX(-50%); background: var(--ch); }
+    #melee-x-dot {
+        position: absolute;
+        width: 3px; height: 3px;
+        background: transparent;
+        border-radius: 0;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.08s;
+        box-shadow:
+            -12px -12px 0 var(--ch),
+             12px -12px 0 var(--ch),
+            -12px  12px 0 var(--ch),
+             12px  12px 0 var(--ch);
+    }
+    #melee-x-dot.active { opacity: 1; }
     #crosshair-ring {
         position: absolute;
         top: 50%;
@@ -440,6 +457,7 @@
 <canvas id="gameCanvas"></canvas>
 <div id="crosshair">
     <div id="crosshair-ring"></div>
+    <div id="melee-x-dot"></div>
 </div>
 <div id="hpDisplay" style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%); z-index:2000; opacity:0.7; flex-direction:column; align-items:center; gap:4px;">
     <div id="hpTrack" style="position:relative; height:8px; background:rgba(255,255,255,0.12); border-radius:4px; overflow:hidden;">
@@ -644,6 +662,7 @@ const crosshair  = document.getElementById('crosshair')
 const navbar     = document.querySelector('.navbar')
 const inventoryUI= document.getElementById('inventoryUI')
 const crosshairRing = document.getElementById('crosshair-ring')
+const meleeXDot     = document.getElementById('melee-x-dot')
 
 // ── Scene ────────────────────────────────────────────────
 const scene    = new THREE.Scene()
@@ -655,40 +674,42 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
 renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.shadowMap.enabled   = true
+renderer.shadowMap.enabled    = true
+renderer.shadowMap.autoUpdate = false  // 手動控制，避免每次 renderer.render() 都重算
 renderer.toneMapping         = THREE.ACESFilmicToneMapping
 renderer.toneMappingExposure = 1.0
 renderer.outputColorSpace    = THREE.SRGBColorSpace
 
 // ── Post-processing ──────────────────────────────────────
-// 必須用實際 drawing buffer 尺寸（= innerSize × pixelRatio），否則 framebuffer attachment 大小不一致
-const _initDbs = renderer.getDrawingBufferSize(new THREE.Vector2())
-const renderTarget = new THREE.WebGLRenderTarget(
-    _initDbs.x, _initDbs.y,
-    { samples: 4 }
-)
+// EffectComposer 不傳自訂 renderTarget，讓它自己用 renderer.pixelRatio 管理尺寸
+// 避免 _pixelRatio=1 和手動尺寸計算反覆衝突造成 framebuffer incomplete
+const composer = new EffectComposer(renderer)
 
-// 深度 pre-pass target（非 MSAA，用於體積霧重建世界座標）
-const depthTarget = new THREE.WebGLRenderTarget(_initDbs.x, _initDbs.y, {
-    depthTexture: new THREE.DepthTexture(_initDbs.x, _initDbs.y),
-    minFilter: THREE.NearestFilter,
-    magFilter: THREE.NearestFilter,
+// ── 深度捕捉：HalfFloat 單 attachment，直接寫 gl_FragCoord.z ──────
+// 單一 color attachment → FBO 永遠 complete；無 packing 問題；.r 直接讀
+const depthTarget = new THREE.WebGLRenderTarget(2, 2, {
+    type:       THREE.HalfFloatType,
+    minFilter:  THREE.NearestFilter,
+    magFilter:  THREE.NearestFilter,
+})
+const _depthMat = new THREE.ShaderMaterial({
+    vertexShader:   `void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `void main(){ gl_FragColor = vec4(vec3(gl_FragCoord.z), 1.0); }`,
 })
 
-const composer = new EffectComposer(renderer, renderTarget)
 composer.addPass(new RenderPass(scene, camera))
 
 // ── 體積大氣霧 Pass ──────────────────────────────────────
 const volFogPass = new ShaderPass({
     uniforms: {
         tDiffuse:       { value: null },
-        tDepth:         { value: depthTarget.depthTexture },
+        tDepth:         { value: null },  // 建立後賦值，避免 ShaderPass cloneUniforms 報錯
         uCamPos:        { value: new THREE.Vector3() },
         uProjInv:       { value: new THREE.Matrix4() },
         uViewInv:       { value: new THREE.Matrix4() },
         uSunDir:        { value: new THREE.Vector3(0, 1, 0) },
         uFogColor:      { value: new THREE.Color(0xF8df75) },
-        uDensity:       { value: 0.005 },
+        uDensity:       { value: 0.005},
         uHeightFalloff: { value: 0.10 },
         uFogBottom:     { value: -2.0 },
     },
@@ -722,10 +743,10 @@ const volFogPass = new ShaderPass({
             float rayDist = depth > 0.9999 ? 180.0 : length(world - uCamPos);
             vec3  rayDir  = normalize(world - uCamPos);
 
-            // 光線步進（24步）
+            // 光線步進（16步）
             float fog = 0.0;
-            float step = rayDist / 24.0;
-            for (int i = 0; i < 24; i++) {
+            float step = rayDist / 16.0;
+            for (int i = 0; i < 16; i++) {
                 vec3 p = uCamPos + rayDir * (float(i) + 0.5) * step;
                 float h = max(p.y - uFogBottom, 0.0);
                 fog += exp(-h * uHeightFalloff) * uDensity * step;
@@ -742,6 +763,7 @@ const volFogPass = new ShaderPass({
     `,
 })
 composer.addPass(volFogPass)
+volFogPass.uniforms.tDepth.value = depthTarget.texture  // cloneUniforms 後才設 texture
 
 const bloom = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -1330,7 +1352,8 @@ function createBot(x, z) {
 const bots = []
 
 const BOT_MAX_INV   = 10
-const BOT_ATK_THRES = 5    // 背包 >= 5 才切換攻擊優先
+const BOT_ATK_THRES    = 5    // 背包 >= 5 才切換攻擊優先
+const KNOCKBACK_SPEED  = 16   // 擊退移動速度（units/s），原為 4
 
 function botThrow(b, chargeLevel) {
     if (b.inventory.length === 0) return
@@ -1413,7 +1436,9 @@ function updateBots(dt) {
         // ── HIT：後退，不做其他判斷 ──
         if (b.state === 'HIT') {
             b.hitTimer -= dt
-            pos.addScaledVector(b.hitDir, 4 * dt)
+            pos.addScaledVector(b.hitDir, KNOCKBACK_SPEED * dt)
+            pos.x = Math.max(-29.5, Math.min(29.5, pos.x))
+            pos.z = Math.max(-29.5, Math.min(29.5, pos.z))
             if (b.hitTimer <= 0)
                 b.state = b.inventory.length >= BOT_ATK_THRES ? 'ATTACK' : 'SEEK'
             pos.y = 0.9
@@ -1671,6 +1696,37 @@ for (let i = 0; i < 8; i++) {
     pickables.push(branch)
 }
 
+// ── 草堆裝飾 ─────────────────────────────────────────────
+const _grassMats = [
+    createToonMat(0x75B989, 0.85),
+    createToonMat(0x93B950, 0.85),
+    createToonMat(0x5F6350, 0.85),
+]
+const _bladeGeo = new THREE.BoxGeometry(0.07, 1, 0.07)  // 共用幾何，scale.y 控制高度
+for (let i = 0; i < 120; i++) {
+    const g = new THREE.Group()
+    const blades = 3 + Math.floor(Math.random() * 3)
+    for (let j = 0; j < blades; j++) {
+        const h   = 0.18 + Math.random() * 0.22
+        const mat = _grassMats[Math.floor(Math.random() * _grassMats.length)]
+        const blade = new THREE.Mesh(_bladeGeo, mat)
+        blade.scale.y = h
+        blade.position.set(
+            (Math.random() - 0.5) * 0.35,
+            h / 2,
+            (Math.random() - 0.5) * 0.35
+        )
+        blade.rotation.set(
+            (Math.random() - 0.5) * 0.35,
+            Math.random() * Math.PI,
+            (Math.random() - 0.5) * 0.45
+        )
+        g.add(blade)
+    }
+    g.position.set((Math.random() - 0.5) * 52, 0, (Math.random() - 0.5) * 52)
+    scene.add(g)
+}
+
 // ── Raycaster ────────────────────────────────────────────
 const raycaster   = new THREE.Raycaster()
 const screenCenter = new THREE.Vector2(0, 0)
@@ -1755,9 +1811,9 @@ document.addEventListener('keydown', e => {
     }
 })
 
-// 右鍵：把背包當前選中物品裝成義肢
+// 中鍵：把背包當前選中物品裝成義肢
 document.addEventListener('mousedown', e => {
-    if (document.pointerLockElement !== canvas || e.button !== 2) return
+    if (document.pointerLockElement !== canvas || e.button !== 1) return
     const slot = LIMB_SLOTS.findLast(s => s.group === null)
     if (!slot || inventory.length === 0) return
     const idx = Math.min(selectedSlotIndex, inventory.length - 1)
@@ -1783,6 +1839,54 @@ let chargeStartTime = 0;
 let playerChargePreview = null
 let playerChargePtmr   = 0
 const MAX_CHARGE_TIME = 1000; // 設定 1 秒鐘為滿蓄力
+
+let meleeTimer    = 0   // 近戰動畫倒計時
+let meleeCooldown = 0   // 攻擊冷卻
+let meleeHitDone  = false
+
+const _MELEE_SIZE = { rock: 1.0, branch: 0.65, tree: 5.0 }
+function getItemMeleeSize(item) {
+    if (!item) return 0.5
+    if (item._w && item._h && item._d)
+        return Math.sqrt(item._w ** 2 + item._h ** 2 + item._d ** 2)
+    return _MELEE_SIZE[item.type] || 1.0
+}
+
+function doMeleeHit() {
+    raycaster.setFromCamera(screenCenter, camera)
+    const item = inventory.length > 0 ? inventory[Math.min(selectedSlotIndex, inventory.length - 1)] : null
+    const dmg  = Math.ceil(Math.sqrt(getItemMeleeSize(item)) * 0.6 * 6.8)
+
+    // 檢查 bot（瞄準 + 玩家距離）
+    const botHit = raycaster.intersectObjects(enemies, true)[0]
+    if (botHit) {
+        let obj = botHit.object
+        while (obj.parent && !enemies.includes(obj)) obj = obj.parent
+        const b = bots.find(bot => bot.group === obj)
+        if (b && playerGroup.position.distanceTo(b.group.position) <= 4) {
+            const bc = b.group.position.clone().add(new THREE.Vector3(0, 0.8, 0))
+            b.hp -= dmg
+            b.flashTimer = FLASH_DUR; applyHitFlash(b.flashMats); spawnHitParticles(bc)
+            b.state = 'HIT'; b.hitTimer = 0.4
+            b.hitDir.subVectors(b.group.position, playerGroup.position).setY(0).normalize()
+            if (b.hp <= 0) {
+                b.hp = 100
+                const a = Math.random() * Math.PI * 2
+                b.group.position.set(Math.sin(a) * 20, 0.9, Math.cos(a) * 20)
+            }
+            return
+        }
+    }
+
+    // 檢查 PvP 對手（瞄準 + 玩家距離）
+    if (opponent) {
+        const oppHit = raycaster.intersectObjects([opponent.group], true)[0]
+        if (oppHit && playerGroup.position.distanceTo(opponent.group.position) <= 4) {
+            const oc = opponent.group.position.clone().add(new THREE.Vector3(0, 0.8, 0))
+            opponent.flashTimer = FLASH_DUR; applyHitFlash(opponent.flashMats); spawnHitParticles(oc)
+        }
+    }
+}
 
 // 左鍵點擊拾取 或 開始蓄力
 document.addEventListener('mousedown', e => {
@@ -1822,16 +1926,25 @@ document.addEventListener('mousedown', e => {
         }
     }
 
-    // 如果沒有拾取物品，且當前選中的欄位有庫存，則開始蓄力
-    if (!pickedUp && selectedSlotIndex < inventory.length) {
-        isCharging = true;
-        chargeStartTime = performance.now();
-        if (crosshairRing) {
-            crosshairRing.style.display = 'block';
-            crosshairRing.style.setProperty('--charge', '0%');
-        }
+    // 如果沒有拾取物品 → 近戰（須有 2 隻腳才能站立出擊）
+    const _mLeg = LIMB_SLOTS.slice(2).filter(s => s.group !== null).length
+    if (!pickedUp && meleeCooldown <= 0 && _mLeg >= 2) {
+        meleeTimer    = 0.15
+        meleeCooldown = 0.5
+        meleeHitDone  = false
     }
 });
+
+// 右鍵按下：開始蓄力
+document.addEventListener('mousedown', e => {
+    if (document.pointerLockElement !== canvas || e.button !== 2) return
+    if (selectedSlotIndex < inventory.length) {
+        isCharging = true
+        chargeStartTime = performance.now()
+        if (crosshairRing) { crosshairRing.style.display = 'block'; crosshairRing.style.setProperty('--charge', '0%') }
+    }
+})
+document.addEventListener('contextmenu', e => e.preventDefault())
 
 // ── 共用：根據 item 建立投擲物 mesh ──────────────────────
 function makeProjectileMesh(item) {
@@ -1859,9 +1972,9 @@ function makeProjectileMesh(item) {
     return mesh
 }
 
-// 釋放左鍵：根據蓄力時間進行發射
+// 釋放右鍵：根據蓄力時間進行發射
 document.addEventListener('mouseup', e => {
-    if (document.pointerLockElement !== canvas || e.button !== 0) return;
+    if (document.pointerLockElement !== canvas || e.button !== 2) return;
     if (!isCharging) return; // 若未在蓄力狀態則忽略
     
     isCharging = false;
@@ -1874,8 +1987,9 @@ document.addEventListener('mouseup', e => {
     // 蓄力直接決定力道：輕點極弱，滿蓄才有完整射程
     const power = Math.pow(chargeLevel, 0.6); // 曲線讓前段蓄力更有感
 
-    // 從背包移除物品
+    // 從背包移除物品（蓄力期間可能已被消耗）
     const item = inventory.splice(selectedSlotIndex, 1)[0];
+    if (!item) { updateInventoryUI(); return; }
     if (selectedSlotIndex >= inventory.length && inventory.length > 0) {
         selectedSlotIndex = inventory.length - 1;
     }
@@ -2076,6 +2190,22 @@ function animate() {
             body.rotation.z += (0 - body.rotation.z) * Math.min(dt * 6, 1)
         }
         
+        // 近戰冷卻 & 手臂動畫
+        if (meleeCooldown > 0) meleeCooldown -= dt
+        if (meleeTimer > 0) {
+            meleeTimer -= dt
+            const t = Math.max(meleeTimer, 0) / 0.15
+            const _hasArm = LIMB_SLOTS[0].group || LIMB_SLOTS[1].group
+            if (_hasArm) {
+                const armSlot = LIMB_SLOTS[0].group ? LIMB_SLOTS[0] : LIMB_SLOTS[1]
+                armSlot.group.rotation.x = Math.sin(t * Math.PI) * 2.0
+            } else {
+                const legSlot = LIMB_SLOTS[2].group ? LIMB_SLOTS[2] : LIMB_SLOTS[3].group ? LIMB_SLOTS[3] : null
+                if (legSlot?.group) legSlot.group.rotation.x = Math.sin(t * Math.PI) * 2.5
+            }
+            if (!meleeHitDone && meleeTimer <= 0.07) { doMeleeHit(); meleeHitDone = true }
+        }
+
         // 動態更新蓄力光環與嘴巴張合動畫
         let targetJawRotation = 0;
         if (isCharging) {
@@ -2198,12 +2328,23 @@ function animate() {
         if (dist < 4) crosshair.classList.add('aimed-pickup')
     }
 
+    // 近戰可用指示（瞄準敵人 + 距離內 + 冷卻結束 + 有 2 腳）
+    const _mLegCheck = LIMB_SLOTS.slice(2).filter(s => s.group !== null).length
+    let _meleeReady = false
+    if (enemyHit && meleeCooldown <= 0 && _mLegCheck >= 2) {
+        let _hr = enemyHit.object
+        while (_hr.parent && !enemies.includes(_hr)) _hr = _hr.parent
+        if (enemies.includes(_hr) && playerGroup.position.distanceTo(_hr.position) <= 4)
+            _meleeReady = true
+    }
+    meleeXDot.classList.toggle('active', _meleeReady)
+
     // Bot 只在遊戲進行中更新（pointer lock 時）
     if (document.pointerLockElement === canvas) {
-        updateBots(dt)
         checkBotHits()
         checkPlayerHits()
         checkOpponentHits()
+        updateBots(dt)
     }
 
     // ── 受擊閃紅衰退 ─────────────────────────────────────
@@ -2258,12 +2399,18 @@ function animate() {
         c.mesh.position.x += c.speed * dt
         if (c.mesh.position.x > 80) c.mesh.position.x = -80
     }
-    // 深度 pre-pass（供體積霧重建世界座標）
+    // 深度 pre-pass：HalfFloat 直接存 gl_FragCoord.z，sky = 白 clear = 1.0
+    renderer.shadowMap.needsUpdate = true   // 只算一次，RenderPass 直接用
+    const _bg = scene.background; scene.background = null
+    renderer.setClearColor(0xffffff, 1)
     renderer.setRenderTarget(depthTarget)
+    scene.overrideMaterial = _depthMat
     renderer.render(scene, camera)
+    scene.overrideMaterial = null; scene.background = _bg
     renderer.setRenderTarget(null)
+    renderer.setClearColor(0x000000, 0)
 
-    // 更新體積霧 uniforms
+    // 體積霧 uniforms
     volFogPass.uniforms.uCamPos.value.copy(camera.position)
     volFogPass.uniforms.uProjInv.value.copy(camera.projectionMatrixInverse)
     volFogPass.uniforms.uViewInv.value.copy(camera.matrixWorld)
@@ -2312,9 +2459,9 @@ document.addEventListener('pointerlockchange', () => {
     } else if (running) {
         pauseOverlay.style.display = 'flex'
         crosshair.style.display    = 'none'
-        // 暫停時強制中斷蓄力
-        isCharging = false;
-        crosshairRing.style.display = 'none';
+        isCharging = false
+        crosshairRing.style.display = 'none'
+        for (const k in keys) keys[k] = false   // 清除所有按鍵，防止卡鍵
     }
 })
 
@@ -2394,23 +2541,15 @@ function createOpponent(bodyColor) {
 
 function startPvP(opponentColor, role, opponentName, opponentAvatar) {
     console.log('[arena] startPvP role=', role, 'color=', opponentColor)
-    applyPlayerColor()
-    resetPlayerLimbs()
+    startGame()
     const myZ  = role === 'host' ? -15 : 15
     const oppZ = role === 'host' ?  15 : -15
     playerGroup.position.set(0, 0.9, myZ)
-    faceToward(0, oppZ)   // 面向對手出生點
+    faceToward(0, oppZ)
     opponent = createOpponent(opponentColor)
     opponent.group.position.set(0, 0.9, oppZ)
     const nameEl = document.getElementById('opp-label-name')
     if (nameEl) nameEl.textContent = opponentName || '?'
-    startScr.style.display    = 'none'
-    canvas.style.display      = 'block'
-    inventoryUI.style.display = 'flex'
-    playerHP = PLAYER_MAX_HP; updateHpBar(); showHpDisplay(true)
-    running = true
-    animate()
-    hideNavbar()
     // requestPointerLock 必須在使用者手勢中呼叫，用 overlay 橋接
     // 顯示 ready 畫面，設定對手資訊
     const cte     = document.getElementById('clickToEnter')
@@ -2438,7 +2577,8 @@ function startPvP(opponentColor, role, opponentName, opponentAvatar) {
 }
 
 function connectArena() {
-    const url = `ws://${location.host}/ws/arena/`
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+    const url = `${proto}://${location.host}/ws/arena/`
     ws = new WebSocket(url)
 
     ws.onopen = () => ws.send(JSON.stringify({
@@ -2497,20 +2637,34 @@ document.getElementById('cancelQueue').addEventListener('click', () => {
     arenaLayoutEl.style.display  = 'flex'
 })
 
-// ── 開始 ─────────────────────────────────────────────────
-document.getElementById('startBtn').addEventListener('click', () => {
-    console.log('[arena] startBtn clicked')
+// ── 共用遊戲初始化（單人 & 配對都走這裡）─────────────────
+function startGame() {
     applyPlayerColor()
     resetPlayerLimbs()
-    bots.push(createBot(5, 5))
-    faceToward(bots[0].group.position.x, bots[0].group.position.z)
-    startScr.style.display = 'none'
-    canvas.style.display   = 'block'
+    // 清除上局殘留狀態
+    projectiles.forEach(p => scene.remove(p.mesh)); projectiles.length = 0
+    hitParticles.forEach(p => scene.remove(p));     hitParticles.length = 0
+    if (playerChargePreview) { scene.remove(playerChargePreview); playerChargePreview = null }
+    playerChargePtmr = 0
+    meleeTimer = 0; meleeCooldown = 0; isCharging = false
+    startScr.style.display    = 'none'
+    canvas.style.display      = 'block'
+    // canvas 顯示後才能取得正確尺寸，補一次 resize 以修正 0×0 backbuffer
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    composer.setSize(window.innerWidth, window.innerHeight)
+    depthTarget.setSize(composer.renderTarget1.width, composer.renderTarget1.height)
     inventoryUI.style.display = 'flex'
     playerHP = PLAYER_MAX_HP; updateHpBar(); showHpDisplay(true)
     running = true
     animate()
     hideNavbar()
+}
+
+// ── 開始（單人）─────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', () => {
+    startGame()
+    bots.push(createBot(5, 5))
+    faceToward(bots[0].group.position.x, bots[0].group.position.z)
     const lockResult = canvas.requestPointerLock()
     if (lockResult instanceof Promise) {
         lockResult
@@ -2525,9 +2679,7 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix()
     renderer.setSize(window.innerWidth, window.innerHeight)
     composer.setSize(window.innerWidth, window.innerHeight)
-    const _dbs = renderer.getDrawingBufferSize(new THREE.Vector2())
-    renderTarget.setSize(_dbs.x, _dbs.y)
-    depthTarget.setSize(_dbs.x, _dbs.y)
+    depthTarget.setSize(composer.renderTarget1.width, composer.renderTarget1.height)
     halftoneShared.uResolution.value.set(window.innerWidth, window.innerHeight)
 })
 </script>
